@@ -558,19 +558,27 @@ async function loadRandomBeer() {
     window.currentBeer = randomBeer;
     document.getElementById('beer-name').textContent = randomBeer.name;
     
-    // Формируем информационную строку
-    let infoText = '';
-    if (randomBeer.country) {
-      infoText += randomBeer.country;
-    }
+    // Формируем информационные строки
+    let countryText = randomBeer.country || '';
+    let technicalText = '';
+    
     if (randomBeer.abv) {
-      infoText += (infoText ? ' • ' : '') + `${randomBeer.abv}% ABV`;
+      technicalText += `ABV ${randomBeer.abv}`;
     }
     if (randomBeer.ebc) {
-      infoText += (infoText ? ' • ' : '') + `EBC ${randomBeer.ebc}`;
+      technicalText += (technicalText ? ' • ' : '') + `EBC ${randomBeer.ebc}`;
     }
     
-    document.getElementById('beer-info').textContent = infoText || 'Информация не указана';
+    // Устанавливаем текст
+    if (countryText && technicalText) {
+      document.getElementById('beer-info').innerHTML = `${countryText}<br>${technicalText}`;
+    } else if (countryText) {
+      document.getElementById('beer-info').textContent = countryText;
+    } else if (technicalText) {
+      document.getElementById('beer-info').textContent = technicalText;
+    } else {
+      document.getElementById('beer-info').textContent = 'Информация не указана';
+    }
     
     // Загружаем изображение если есть URL
     if (randomBeer.imageUrl && randomBeer.imageUrl.trim()) {
