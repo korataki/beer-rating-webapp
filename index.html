@@ -132,19 +132,22 @@
     
     /* Желтые кнопки (4-6) - второй ряд по центру */
     .rating-buttons button:nth-child(5) {
-      grid-column: 2;
+      grid-column: 1;
+      justify-self: end;
       border-color: #ffc107;
       color: #856404;
     }
     
     .rating-buttons button:nth-child(6) {
-      grid-column: 3;
+      grid-column: 2;
+      justify-self: center;
       border-color: #ffc107;
       color: #856404;
     }
     
     .rating-buttons button:nth-child(7) {
-      grid-column: 4;
+      grid-column: 3;
+      justify-self: start;
       border-color: #ffc107;
       color: #856404;
     }
@@ -341,32 +344,35 @@
       
       /* Желтые кнопки 4-6 во втором ряду */
       .rating-buttons button:nth-child(5) {
-        grid-column: 2;
+        grid-column: 1;
+        justify-self: end;
       }
       
       .rating-buttons button:nth-child(6) {
-        grid-column: 3;
+        grid-column: 2;
+        justify-self: center;
       }
       
       .rating-buttons button:nth-child(7) {
-        grid-column: 1;
+        grid-column: 3;
+        justify-self: start;
       }
       
       /* Зеленые кнопки 7-10 */
       .rating-buttons button:nth-child(8) {
-        grid-column: 2;
-      }
-      
-      .rating-buttons button:nth-child(9) {
-        grid-column: 3;
-      }
-      
-      .rating-buttons button:nth-child(10) {
         grid-column: 1;
       }
       
-      .rating-buttons button:nth-child(11) {
+      .rating-buttons button:nth-child(9) {
         grid-column: 2;
+      }
+      
+      .rating-buttons button:nth-child(10) {
+        grid-column: 3;
+      }
+      
+      .rating-buttons button:nth-child(11) {
+        grid-column: 1;
       }
       
       /* Кнопка "Не пробовал" на всю ширину */
@@ -429,12 +435,6 @@
 <div class="control-buttons">
   <button onclick="showRating()" class="rating-btn">
     📊 Посмотреть рейтинг
-  </button>
-  <button onclick="testFirebaseConnection()" class="test-btn" style="background-color: #fd7e14;">
-    🔥 Тест Firebase
-  </button>
-  <button onclick="testConnection()" class="test-btn">
-    🔧 Тест соединения
   </button>
 </div>
 
@@ -655,80 +655,6 @@ window.onclick = function(event) {
   if (event.target === modal) {
     closeRating();
   }
-}
-
-async function testFirebaseConnection() {
-  try {
-    console.log('=== ТЕСТ FIREBASE ===');
-    
-    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
-    testBtn.disabled = true;
-    testBtn.innerHTML = '<span class="loading-spinner"></span> Тестирование...';
-    
-    // Тест 1: Проверяем подключение к Firebase
-    console.log('1. Проверяем подключение к Firebase...');
-    const testRef = database.ref('.info/connected');
-    const snapshot = await testRef.once('value');
-    const connected = snapshot.val();
-    
-    if (!connected) {
-      throw new Error('Нет подключения к Firebase');
-    }
-    console.log('✅ Подключение к Firebase OK');
-    
-    // Тест 2: Проверяем загрузку пива
-    console.log('2. Проверяем загрузку данных о пиве...');
-    const beersSnapshot = await database.ref('beers').limitToFirst(1).once('value');
-    const beersData = beersSnapshot.val();
-    
-    if (!beersData) {
-      throw new Error('Данные о пиве не найдены');
-    }
-    
-    // Проверяем структуру данных
-    const firstBeer = Object.values(beersData)[0];
-    console.log('Структура первого пива:', firstBeer);
-    
-    const hasRequiredFields = firstBeer['Beer'] || firstBeer.name;
-    if (!hasRequiredFields) {
-      console.warn('⚠️ Не найдено поле "Beer" или "name" в данных пива');
-    }
-    
-    console.log('✅ Данные о пиве загружаются OK');
-    console.log('Найденные поля:', Object.keys(firstBeer));
-    
-    // Тест 3: Проверяем запись тестового голоса
-    console.log('3. Проверяем запись тестового голоса...');
-    const testVote = {
-      beer: 'Test Beer',
-      score: 5,
-      timestamp: firebase.database.ServerValue.TIMESTAMP,
-      userID: 'test_user_123'
-    };
-    
-    const testVoteRef = database.ref('votes').push();
-    await testVoteRef.set(testVote);
-    console.log('✅ Запись голоса OK');
-    
-    // Удаляем тестовый голос
-    await testVoteRef.remove();
-    console.log('✅ Тестовый голос удален');
-    
-    alert('🔥 Firebase работает отлично!\n\n✅ Подключение: OK\n✅ Загрузка данных: OK\n✅ Запись голосов: OK');
-    
-  } catch (err) {
-    console.error("Ошибка теста Firebase:", err);
-    alert(`❌ Ошибка Firebase: ${err.message}\n\nСмотрите консоль для деталей.`);
-  } finally {
-    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
-    testBtn.disabled = false;
-    testBtn.innerHTML = '🔥 Тест Firebase';
-  }
-}
-
-async function testConnection() {
-  // Оставляем старую функцию для совместимости, но теперь она тестирует Firebase
-  await testFirebaseConnection();
 }
 
 function showRating() {
