@@ -618,16 +618,12 @@ async function sendVote(score) {
     // Блокируем кнопки на время отправки
     disableButtons();
     
+    // Упрощенная структура голоса
     const voteData = {
-      userId: userId,
-      beerId: window.currentBeer.id,
-      beerName: window.currentBeer.name,
-      beerCountry: window.currentBeer.country || '',
-      beerABV: window.currentBeer.abv || '',
-      beerEBC: window.currentBeer.ebc || '',
-      originalBeerId: window.currentBeer.originalId || window.currentBeer.id,
-      score: score,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
+      beer: window.currentBeer.name,  // Название пива
+      score: score,                   // Оценка
+      timestamp: firebase.database.ServerValue.TIMESTAMP,  // Временная метка
+      userID: userId                  // ID пользователя Telegram
     };
     
     console.log('Данные голоса:', voteData);
@@ -704,11 +700,10 @@ async function testFirebaseConnection() {
     // Тест 3: Проверяем запись тестового голоса
     console.log('3. Проверяем запись тестового голоса...');
     const testVote = {
-      userId: 'test_user',
-      beerId: 'test_beer',
-      beerName: 'Test Beer',
+      beer: 'Test Beer',
       score: 5,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
+      timestamp: firebase.database.ServerValue.TIMESTAMP,
+      userID: 'test_user_123'
     };
     
     const testVoteRef = database.ref('votes').push();
@@ -765,33 +760,34 @@ async function loadAllRatings() {
       return;
     }
     
-    // Группируем голоса по пиву и вычисляем средний рейтинг
+    // Группируем голоса по названию пива и вычисляем средний рейтинг
     const beerRatings = {};
     
     Object.values(votesData).forEach(vote => {
-      if (vote.score !== null && vote.score !== 'null') {
-        const beerId = vote.beerId;
-        const beerName = vote.beerName || `Пиво ${beerId}`;
+      if (vote.score !== null && vote.score !== 'null' && vote.beer) {
+        const beerName = vote.beer;
         const score = parseFloat(vote.score);
         
-        if (!beerRatings[beerId]) {
-          beerRatings[beerId] = {
-            name: beerName,
-            scores: [],
-            totalScore: 0,
-            count: 0
-          };
+        if (!isNaN(score)) {  // Проверяем, что score - это число
+          if (!beerRatings[beerName]) {
+            beerRatings[beerName] = {
+              name: beerName,
+              scores: [],
+              totalScore: 0,
+              count: 0
+            };
+          }
+          
+          beerRatings[beerName].scores.push(score);
+          beerRatings[beerName].totalScore += score;
+          beerRatings[beerName].count += 1;
         }
-        
-        beerRatings[beerId].scores.push(score);
-        beerRatings[beerId].totalScore += score;
-        beerRatings[beerId].count += 1;
       }
     });
     
     // Вычисляем средние рейтинги и сортируем
-    const ratingsArray = Object.keys(beerRatings).map(beerId => {
-      const rating = beerRatings[beerId];
+    const ratingsArray = Object.keys(beerRatings).map(beerName => {
+      const rating = beerRatings[beerName];
       return {
         name: rating.name,
         averageRating: rating.totalScore / rating.count,
