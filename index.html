@@ -44,7 +44,7 @@
 
   async function loadRandomBeer() {
     document.getElementById('status').classList.add('hidden');
-    const res = await fetch('https://script.google.com/macros/s/AKfycbw7Z-iB9Mlkc1a6Lc_3STUM85DYiHTebpJF-71bsUKIHM7POeG-3pwkvZfoA_5ydpSlaA/exec?action=random');
+    const res = await fetch('https://script.google.com/macros/s/AKfycbyBfvmfJKWAUtNXQiEZ2kQMd1YJ3SWhPQSDQJqMOoyeJ1sAHqt-WvFPI4dPt1L3ATZKnA/exec?action=random');
     const data = await res.json();
     window.currentBeer = data;
     document.getElementById('beer-name').textContent = data.name;
@@ -59,7 +59,7 @@
       score: score
     };
 
-    const res = await fetch('https://script.google.com/macros/s/AKfycbw7Z-iB9Mlkc1a6Lc_3STUM85DYiHTebpJF-71bsUKIHM7POeG-3pwkvZfoA_5ydpSlaA/exec', {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbyBfvmfJKWAUtNXQiEZ2kQMd1YJ3SWhPQSDQJqMOoyeJ1sAHqt-WvFPI4dPt1L3ATZKnA/exec', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
@@ -77,4 +77,5 @@
 </body>
 
 </html>
+
 
