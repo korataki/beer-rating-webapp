@@ -17,6 +17,30 @@
       box-sizing: border-box;
     }
     
+    /* Контейнер для пива */
+    .beer-container {
+      margin-bottom: 30px;
+    }
+    
+    /* Изображение пива */
+    .beer-image {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 0 auto 15px auto;
+      display: block;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background-color: #f8f9fa;
+    }
+    
+    .beer-image.loading {
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f8f9fa"/><text x="50" y="50" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236c757d">🍺</text></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
     /* Заголовок пива */
     #beer-name {
       font-size: 24px;
@@ -31,6 +55,28 @@
       font-size: 16px;
       color: #666666 !important;
       margin-bottom: 30px;
+    }
+    
+    /* Индикатор загрузки */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007AFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #666666;
+      font-style: italic;
     }
     
     /* Контейнер для кнопок */
@@ -57,6 +103,11 @@
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
+    .rating-buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
     /* Красные кнопки (0-3) - первый ряд */
     .rating-buttons button:nth-child(1),
     .rating-buttons button:nth-child(2),
@@ -66,10 +117,10 @@
       color: #dc3545;
     }
     
-    .rating-buttons button:nth-child(1):hover,
-    .rating-buttons button:nth-child(2):hover,
-    .rating-buttons button:nth-child(3):hover,
-    .rating-buttons button:nth-child(4):hover {
+    .rating-buttons button:nth-child(1):hover:not(:disabled),
+    .rating-buttons button:nth-child(2):hover:not(:disabled),
+    .rating-buttons button:nth-child(3):hover:not(:disabled),
+    .rating-buttons button:nth-child(4):hover:not(:disabled) {
       background-color: #dc3545;
       color: #ffffff;
     }
@@ -93,9 +144,9 @@
       color: #856404;
     }
     
-    .rating-buttons button:nth-child(5):hover,
-    .rating-buttons button:nth-child(6):hover,
-    .rating-buttons button:nth-child(7):hover {
+    .rating-buttons button:nth-child(5):hover:not(:disabled),
+    .rating-buttons button:nth-child(6):hover:not(:disabled),
+    .rating-buttons button:nth-child(7):hover:not(:disabled) {
       background-color: #ffc107;
       color: #ffffff;
     }
@@ -109,16 +160,16 @@
       color: #28a745;
     }
     
-    .rating-buttons button:nth-child(8):hover,
-    .rating-buttons button:nth-child(9):hover,
-    .rating-buttons button:nth-child(10):hover,
-    .rating-buttons button:nth-child(11):hover {
+    .rating-buttons button:nth-child(8):hover:not(:disabled),
+    .rating-buttons button:nth-child(9):hover:not(:disabled),
+    .rating-buttons button:nth-child(10):hover:not(:disabled),
+    .rating-buttons button:nth-child(11):hover:not(:disabled) {
       background-color: #28a745;
       color: #ffffff;
     }
     
     /* Эффекты при нажатии */
-    .rating-buttons button:active {
+    .rating-buttons button:active:not(:disabled) {
       transform: translateY(0);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
@@ -133,7 +184,7 @@
       margin-top: 10px;
     }
     
-    .rating-buttons button:last-child:hover {
+    .rating-buttons button:last-child:hover:not(:disabled) {
       background-color: #6c757d;
       color: #ffffff;
     }
@@ -156,6 +207,12 @@
       font-weight: bold;
       transition: all 0.2s ease;
       min-width: 200px;
+      position: relative;
+    }
+    
+    .control-buttons button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     
     .test-btn {
@@ -163,7 +220,7 @@
       color: white;
     }
     
-    .test-btn:hover {
+    .test-btn:hover:not(:disabled) {
       background-color: #218838;
       transform: translateY(-1px);
     }
@@ -173,7 +230,7 @@
       color: white;
     }
     
-    .rating-btn:hover {
+    .rating-btn:hover:not(:disabled) {
       background-color: #0056b3;
       transform: translateY(-1px);
     }
@@ -252,6 +309,11 @@
     @media (max-width: 480px) {
       body {
         padding: 15px;
+      }
+      
+      .beer-image {
+        width: 150px;
+        height: 150px;
       }
       
       .rating-buttons {
@@ -338,22 +400,25 @@
 </head>
 <body>
 
-<h2 id="beer-name">Загрузка...</h2>
-<p id="beer-info"></p>
+<div class="beer-container">
+  <img id="beer-image" class="beer-image loading" style="display: none;" alt="Фото пива" onerror="this.style.display='none'">
+  <h2 id="beer-name"><span class="loading-spinner"></span><span class="loading-text">Загрузка...</span></h2>
+  <p id="beer-info"></p>
+</div>
 
 <div class="rating-buttons" id="rating-buttons">
-  <button onclick="sendVote(0)">0</button>
-  <button onclick="sendVote(1)">1</button>
-  <button onclick="sendVote(2)">2</button>
-  <button onclick="sendVote(3)">3</button>
-  <button onclick="sendVote(4)">4</button>
-  <button onclick="sendVote(5)">5</button>
-  <button onclick="sendVote(6)">6</button>
-  <button onclick="sendVote(7)">7</button>
-  <button onclick="sendVote(8)">8</button>
-  <button onclick="sendVote(9)">9</button>
-  <button onclick="sendVote(10)">10</button>
-  <button onclick="sendVote(null)">Не пробовал</button>
+  <button onclick="sendVote(0)" disabled>0</button>
+  <button onclick="sendVote(1)" disabled>1</button>
+  <button onclick="sendVote(2)" disabled>2</button>
+  <button onclick="sendVote(3)" disabled>3</button>
+  <button onclick="sendVote(4)" disabled>4</button>
+  <button onclick="sendVote(5)" disabled>5</button>
+  <button onclick="sendVote(6)" disabled>6</button>
+  <button onclick="sendVote(7)" disabled>7</button>
+  <button onclick="sendVote(8)" disabled>8</button>
+  <button onclick="sendVote(9)" disabled>9</button>
+  <button onclick="sendVote(10)" disabled>10</button>
+  <button onclick="sendVote(null)" disabled>Не пробовал</button>
 </div>
 
 <div class="control-buttons">
@@ -372,7 +437,8 @@
     <h2 style="margin-top: 0; margin-bottom: 20px; text-align: center;">🏆 Рейтинг всех сортов пива</h2>
     <div id="ratingList">
       <div style="text-align: center; padding: 20px;">
-        <div>Загрузка рейтинга...</div>
+        <span class="loading-spinner"></span>
+        <span class="loading-text">Загрузка рейтинга...</span>
       </div>
     </div>
   </div>
@@ -381,6 +447,7 @@
 <script>
 let tg = window.Telegram?.WebApp;
 let userId = null;
+let isLoading = false;
 
 // Инициализация Telegram WebApp
 if (tg) {
@@ -398,10 +465,38 @@ if (tg) {
   userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
 }
 
+function enableButtons() {
+  const buttons = document.querySelectorAll('.rating-buttons button');
+  buttons.forEach(button => button.disabled = false);
+}
+
+function disableButtons() {
+  const buttons = document.querySelectorAll('.rating-buttons button');
+  buttons.forEach(button => button.disabled = true);
+}
+
 async function loadRandomBeer() {
+  if (isLoading) return;
+  isLoading = true;
+  
   try {
     console.log('Загружаем случайное пиво...');
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random');
+    
+    // Показываем индикатор загрузки
+    document.getElementById('beer-name').innerHTML = '<span class="loading-spinner"></span><span class="loading-text">Загрузка...</span>';
+    document.getElementById('beer-info').textContent = '';
+    document.getElementById('beer-image').style.display = 'none';
+    disableButtons();
+    
+    // Добавляем timeout для быстрого реагирования на медленные запросы
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд timeout
+    
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random', {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     console.log('Ответ получен, статус:', res.status);
     
@@ -419,11 +514,36 @@ async function loadRandomBeer() {
     window.currentBeer = data;
     document.getElementById('beer-name').textContent = data.name;
     document.getElementById('beer-info').textContent = data.country || 'Страна не указана';
+    
+    // Загружаем изображение если есть URL
+    if (data.imageUrl && data.imageUrl.trim()) {
+      const img = document.getElementById('beer-image');
+      img.src = data.imageUrl;
+      img.style.display = 'block';
+      img.onload = function() {
+        console.log('Изображение загружено успешно');
+      };
+      img.onerror = function() {
+        console.log('Ошибка загрузки изображения:', data.imageUrl);
+        this.style.display = 'none';
+      };
+    }
+    
+    enableButtons();
+    
   } catch (err) {
     console.error("Ошибка загрузки пива:", err);
     console.error("Детали ошибки:", err.message);
-    document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
-    document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
+    
+    if (err.name === 'AbortError') {
+      document.getElementById('beer-name').textContent = "Медленное соединение :(";
+      document.getElementById('beer-info').textContent = "Попробуйте обновить страницу или проверьте интернет";
+    } else {
+      document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
+      document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
+    }
+  } finally {
+    isLoading = false;
   }
 }
 
@@ -434,9 +554,17 @@ async function sendVote(score) {
     return;
   }
 
+  if (isLoading) {
+    alert("Подождите, идет загрузка...");
+    return;
+  }
+
   try {
     console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.id);
     console.log('userId:', userId);
+    
+    // Блокируем кнопки на время отправки
+    disableButtons();
     
     // Используем тот же метод, что и в тесте соединения (GET запрос)
     const params = new URLSearchParams({
@@ -449,7 +577,13 @@ async function sendVote(score) {
     const url = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${params}`;
     console.log('URL для голосования:', url);
     
-    const res = await fetch(url);
+    // Добавляем timeout для голосования
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 секунд timeout
+    
+    const res = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     console.log('Ответ на голосование, статус:', res.status);
     console.log('Заголовки ответа:', [...res.headers.entries()]);
     
@@ -479,6 +613,7 @@ async function sendVote(score) {
       loadRandomBeer();
     } else {
       alert(result.message || "Произошла ошибка при сохранении голоса");
+      enableButtons();
     }
   } catch (err) {
     console.error("Ошибка отправки голоса:", err);
@@ -486,8 +621,12 @@ async function sendVote(score) {
     console.error("Тип ошибки:", err.name);
     console.error("Stack trace:", err.stack);
     
+    enableButtons();
+    
     // Более детальное сообщение об ошибке
-    if (err.name === 'TypeError' && err.message.includes('fetch')) {
+    if (err.name === 'AbortError') {
+      alert("Медленное соединение. Попробуйте еще раз.");
+    } else if (err.name === 'TypeError' && err.message.includes('fetch')) {
       alert("Ошибка сети. Проверьте подключение к интернету.");
     } else if (err.message.includes('HTTP error')) {
       alert(`Ошибка сервера: ${err.message}. Попробуйте позже.`);
@@ -515,6 +654,10 @@ window.onclick = function(event) {
 async function testConnection() {
   try {
     console.log('=== ТЕСТ СОЕДИНЕНИЯ ===');
+    
+    const testBtn = document.querySelector('.test-btn');
+    testBtn.disabled = true;
+    testBtn.innerHTML = '<span class="loading-spinner"></span> Тестирование...';
     
     // Сначала тестируем базовое соединение
     console.log('1. Проверяем базовое соединение...');
@@ -562,6 +705,10 @@ async function testConnection() {
     console.error("Ошибка теста соединения:", err);
     console.error("Детали ошибки:", err.message);
     alert(`❌ Ошибка теста: ${err.message}\n\nСмотрите консоль для деталей.`);
+  } finally {
+    const testBtn = document.querySelector('.test-btn');
+    testBtn.disabled = false;
+    testBtn.innerHTML = '🔧 Тест соединения';
   }
 }
 
@@ -577,7 +724,23 @@ function closeRating() {
 async function loadAllRatings() {
   try {
     console.log('Загружаем общий рейтинг...');
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=allRatings');
+    
+    const ratingBtn = document.querySelector('.rating-btn');
+    ratingBtn.disabled = true;
+    
+    // Показываем индикатор загрузки
+    const ratingList = document.getElementById('ratingList');
+    ratingList.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="loading-spinner"></span><span class="loading-text">Загрузка рейтинга...</span></div>';
+    
+    // Добавляем timeout для рейтинга
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд timeout
+    
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=allRatings', {
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
     
     if (!res.ok) {
       throw new Error(`HTTP error! status: ${res.status}`);
@@ -590,8 +753,12 @@ async function loadAllRatings() {
       throw new Error('Некорректные данные рейтинга от сервера');
     }
 
-    const ratingList = document.getElementById('ratingList');
     ratingList.innerHTML = ''; // Очищаем предыдущий список
+
+    if (data.length === 0) {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Пока нет оценок</div>';
+      return;
+    }
 
     data.forEach(item => {
       const ratingItem = document.createElement('div');
@@ -607,8 +774,16 @@ async function loadAllRatings() {
   } catch (err) {
     console.error("Ошибка загрузки общего рейтинга:", err);
     console.error("Детали ошибки:", err.message);
+    
     const ratingList = document.getElementById('ratingList');
-    ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить рейтинг. Попробуйте позже.</div>';
+    if (err.name === 'AbortError') {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Медленная загрузка рейтинга. Попробуйте позже.</div>';
+    } else {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить рейтинг. Попробуйте позже.</div>';
+    }
+  } finally {
+    const ratingBtn = document.querySelector('.rating-btn');
+    ratingBtn.disabled = false;
   }
 }
 </script> 
