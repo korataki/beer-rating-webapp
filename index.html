@@ -457,6 +457,9 @@
   <button onclick="showRating()" class="rating-btn">
     📊 Посмотреть рейтинг
   </button>
+  <button onclick="showMyVotes()" class="rating-btn" style="background-color: #6f42c1;">
+    👤 Мои голоса
+  </button>
 </div>
 
 <!-- Модальное окно для рейтинга -->
@@ -468,6 +471,20 @@
       <div style="text-align: center; padding: 20px;">
         <span class="loading-spinner"></span>
         <span class="loading-text">Загрузка рейтинга...</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Модальное окно для моих голосов -->
+<div id="myVotesModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeMyVotes()">&times;</span>
+    <h2 style="margin-top: 0; margin-bottom: 20px; text-align: center;">👤 Мои голоса</h2>
+    <div id="myVotesList">
+      <div style="text-align: center; padding: 20px;">
+        <span class="loading-spinner"></span>
+        <span class="loading-text">Загрузка ваших голосов...</span>
       </div>
     </div>
   </div>
@@ -494,6 +511,7 @@ let tg = window.Telegram?.WebApp;
 let userId = null;
 let isLoading = false;
 let allBeers = [];
+let myVotedBeers = new Set(); // Множество названий пива, за которые пользователь уже голосовал
 
 // Инициализация Telegram WebApp
 if (tg) {
@@ -513,6 +531,27 @@ if (tg) {
 
 console.log('Firebase инициализирован');
 console.log('User ID:', userId);
+
+async function loadMyVotedBeers() {
+  try {
+    console.log('Загружаем уже проголосованные сорта пива...');
+    const votesSnapshot = await database.ref('votes').orderByChild('userID').equalTo(userId).once('value');
+    const votesData = votesSnapshot.val();
+    
+    myVotedBeers.clear(); // Очищаем множество
+    
+    if (votesData) {
+      Object.values(votesData).forEach(vote => {
+        if (vote.beer) {
+          myVotedBeers.add(vote.beer);
+        }
+      });
+      console.log(`Найдено ${myVotedBeers.size} уже проголосованных сортов:`, Array.from(myVotedBeers));
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки проголосованных сортов:', error);
+  }
+}
 
 function enableButtons() {
   const buttons = document.querySelectorAll('.rating-buttons button');
@@ -570,9 +609,24 @@ async function loadRandomBeer() {
       await loadAllBeers();
     }
     
-    // Выбираем случайное пиво
-    const randomIndex = Math.floor(Math.random() * allBeers.length);
-    const randomBeer = allBeers[randomIndex];
+    // Загружаем уже проголосованные сорта
+    await loadMyVotedBeers();
+    
+    // Фильтруем пиво, исключая уже проголосованные
+    const availableBeers = allBeers.filter(beer => !myVotedBeers.has(beer.name));
+    
+    console.log(`Доступно для голосования: ${availableBeers.length} из ${allBeers.length} сортов`);
+    
+    if (availableBeers.length === 0) {
+      // Если пользователь проголосовал за все сорта
+      document.getElementById('beer-name').textContent = "Поздравляем! 🎉";
+      document.getElementById('beer-info').innerHTML = "Вы проголосовали за все сорта пива!<br>Посмотрите свои голоса в меню 'Мои голоса'";
+      return;
+    }
+    
+    // Выбираем случайное пиво из доступных
+    const randomIndex = Math.floor(Math.random() * availableBeers.length);
+    const randomBeer = availableBeers[randomIndex];
     
     console.log('Выбрано случайное пиво:', randomBeer);
     
@@ -663,6 +717,9 @@ async function sendVote(score) {
     
     console.log('Голос успешно записан в Firebase!');
     
+    // Добавляем название пива в множество проголосовавших
+    myVotedBeers.add(window.currentBeer.name);
+    
     alert(`Голос учтён! 🍺\n\n${window.currentBeer.name}\nОценка: ${score === null ? 'Не пробовал' : score}/10`);
     
     // Загружаем следующее пиво после успешного голосования
@@ -680,9 +737,14 @@ loadRandomBeer();
 
 // Закрытие модального окна при клике вне его области
 window.onclick = function(event) {
-  const modal = document.getElementById('ratingModal');
-  if (event.target === modal) {
+  const ratingModal = document.getElementById('ratingModal');
+  const myVotesModal = document.getElementById('myVotesModal');
+  
+  if (event.target === ratingModal) {
     closeRating();
+  }
+  if (event.target === myVotesModal) {
+    closeMyVotes();
   }
 }
 
@@ -779,6 +841,117 @@ async function loadAllRatings() {
   } finally {
     const ratingBtn = document.querySelector('.rating-btn');
     ratingBtn.disabled = false;
+  }
+}
+
+function showMyVotes() {
+  document.getElementById('myVotesModal').style.display = 'block';
+  loadMyVotes();
+}
+
+function closeMyVotes() {
+  document.getElementById('myVotesModal').style.display = 'none';
+}
+
+async function loadMyVotes() {
+  try {
+    console.log('Загружаем мои голоса из Firebase...');
+    
+    const myVotesBtn = document.querySelector('.control-buttons button:last-child');
+    myVotesBtn.disabled = true;
+
+    const myVotesList = document.getElementById('myVotesList');
+    myVotesList.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="loading-spinner"></span><span class="loading-text">Загрузка ваших голосов...</span></div>';
+
+    const votesSnapshot = await database.ref('votes').orderByChild('userID').equalTo(userId).once('value');
+    const votesData = votesSnapshot.val();
+
+    if (!votesData) {
+      myVotesList.innerHTML = '<div style="text-align: center; padding: 20px;">Вы пока не голосовали.</div>';
+      return;
+    }
+
+    const myVotesArray = Object.keys(votesData).map(key => {
+      const vote = votesData[key];
+      return {
+        id: key,
+        beer: vote.beer,
+        score: vote.score,
+        timestamp: vote.timestamp,
+        beerId: vote.beerId // Assuming beerId is stored in the vote data
+      };
+    }).sort((a, b) => b.timestamp - a.timestamp); // Sort by timestamp descending
+
+    console.log('Мои голоса загружены:', myVotesArray);
+
+    myVotesList.innerHTML = ''; // Clear previous list
+
+    if (myVotesArray.length === 0) {
+      myVotesList.innerHTML = '<div style="text-align: center; padding: 20px;">Вы пока не голосовали.</div>';
+      return;
+    }
+
+    myVotesArray.forEach(vote => {
+      const voteItem = document.createElement('div');
+      voteItem.className = 'rating-item';
+      voteItem.innerHTML = `
+        <div class="beer-name">${vote.beer} <small>(${new Date(vote.timestamp).toLocaleDateString()})</small></div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div class="beer-rating ${vote.score >= 7 ? 'rating-high' : vote.score >= 4 ? 'rating-medium' : 'rating-low'}">
+            ${vote.score === null ? 'Не пробовал' : vote.score}/10
+          </div>
+          <button onclick="editVote('${vote.id}', '${vote.beer}')" style="background: #007AFF; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">
+            ✏️ Изменить
+          </button>
+        </div>
+      `;
+      myVotesList.appendChild(voteItem);
+    });
+
+  } catch (err) {
+    console.error("Ошибка загрузки моих голосов из Firebase:", err);
+    const myVotesList = document.getElementById('myVotesList');
+    myVotesList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить ваши голоса из Firebase. Попробуйте позже.</div>';
+  } finally {
+    const myVotesBtn = document.querySelector('.control-buttons button:last-child');
+    myVotesBtn.disabled = false;
+  }
+}
+
+async function editVote(voteId, beerName) {
+  const newScore = prompt(`Измените оценку для "${beerName}":\n\nВведите число от 0 до 10 или "null" для "Не пробовал"`, '');
+  if (newScore === null) {
+    return; // Пользователь отменил изменение
+  }
+
+  let score;
+  if (newScore.toLowerCase() === 'null' || newScore.toLowerCase() === 'не пробовал' || newScore === '') {
+    score = null;
+  } else {
+    score = parseFloat(newScore);
+    if (isNaN(score) || score < 0 || score > 10) {
+      alert('Пожалуйста, введите корректную оценку (0-10) или "null" для "Не пробовал".');
+      return;
+    }
+  }
+
+  try {
+    console.log('=== ИЗМЕНЕНИЕ ГОЛОСА В FIREBASE ===');
+    console.log('Изменяем голос:', score, 'для пива:', beerName);
+    console.log('voteId:', voteId);
+
+    const voteRef = database.ref(`votes/${voteId}`);
+    await voteRef.update({ 
+      score: score,
+      timestamp: firebase.database.ServerValue.TIMESTAMP // Обновляем время изменения
+    });
+
+    console.log('Голос успешно обновлен в Firebase!');
+    alert(`Голос обновлен! 🍺\n\n${beerName}\nОценка: ${score === null ? 'Не пробовал' : score + '/10'}`);
+    loadMyVotes(); // Обновляем список голосов
+  } catch (err) {
+    console.error("Ошибка обновления голоса в Firebase:", err);
+    alert(`Ошибка обновления голоса: ${err.message}`);
   }
 }
 </script> 
