@@ -88,7 +88,7 @@
     /* Контейнер для кнопок */
     .rating-buttons {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 10px;
       max-width: 400px;
       margin: 0 auto;
@@ -114,7 +114,7 @@
       cursor: not-allowed;
     }
     
-    /* Красные кнопки (0-3) - первый ряд */
+    /* Красные кнопки (0-3) */
     .rating-buttons button:nth-child(1),
     .rating-buttons button:nth-child(2),
     .rating-buttons button:nth-child(3),
@@ -131,21 +131,10 @@
       color: #ffffff;
     }
     
-    /* Желтые кнопки (4-6) - второй ряд по центру */
-    .rating-buttons button:nth-child(5) {
-      grid-column: 2;
-      border-color: #ffc107;
-      color: #856404;
-    }
-    
-    .rating-buttons button:nth-child(6) {
-      grid-column: 3;
-      border-color: #ffc107;
-      color: #856404;
-    }
-    
+    /* Желтые кнопки (4-6) */
+    .rating-buttons button:nth-child(5),
+    .rating-buttons button:nth-child(6),
     .rating-buttons button:nth-child(7) {
-      grid-column: 4;
       border-color: #ffc107;
       color: #856404;
     }
@@ -157,7 +146,7 @@
       color: #ffffff;
     }
     
-    /* Зеленые кнопки (7-10) - третий ряд */
+    /* Зеленые кнопки (7-10) */
     .rating-buttons button:nth-child(8),
     .rating-buttons button:nth-child(9),
     .rating-buttons button:nth-child(10),
@@ -174,6 +163,11 @@
       color: #ffffff;
     }
     
+    /* Кнопка 10 на всю ширину четвертого ряда */
+    .rating-buttons button:nth-child(11) {
+      grid-column: 1 / 4;
+    }
+    
     /* Эффекты при нажатии */
     .rating-buttons button:active:not(:disabled) {
       transform: translateY(0);
@@ -182,7 +176,7 @@
     
     /* Специальная кнопка "Не пробовал" - по центру */
     .rating-buttons button:last-child {
-      grid-column: 2 / 4;
+      grid-column: 2;
       background-color: #f8f9fa;
       border-color: #6c757d;
       color: #6c757d;
@@ -352,45 +346,14 @@
         font-weight: bold;
       }
       
-      /* Адаптивное расположение для мобильных */
-      /* Красные кнопки 0-3: 0,1,2 в первом ряду, 3 во втором */
-      .rating-buttons button:nth-child(4) {
-        grid-column: 1;
-      }
-      
-      /* Желтые кнопки 4-6: 4,5 во втором ряду, 6 в третьем */
-      .rating-buttons button:nth-child(5) {
-        grid-column: 2;
-      }
-      
-      .rating-buttons button:nth-child(6) {
-        grid-column: 3;
-      }
-      
-      .rating-buttons button:nth-child(7) {
-        grid-column: 1;
-      }
-      
-      /* Зеленые кнопки 7-10: 7,8 в третьем ряду, 9,10 в четвертом */
-      .rating-buttons button:nth-child(8) {
-        grid-column: 2;
-      }
-      
-      .rating-buttons button:nth-child(9) {
-        grid-column: 3;
-      }
-      
-      .rating-buttons button:nth-child(10) {
-        grid-column: 1;
-      }
-      
+      /* Кнопка 10 на всю ширину */
       .rating-buttons button:nth-child(11) {
-        grid-column: 2;
+        grid-column: 1 / 4;
       }
       
-      /* Кнопка "Не пробовал" на всю ширину */
+      /* Кнопка "Не пробовал" по центру */
       .rating-buttons button:last-child {
-        grid-column: 1 / 4;
+        grid-column: 2;
         font-size: 18px;
         padding: 16px 12px;
         margin-top: 15px;
