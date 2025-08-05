@@ -149,23 +149,30 @@
     /* Зеленые кнопки (7-10) */
     .rating-buttons button:nth-child(8),
     .rating-buttons button:nth-child(9),
-    .rating-buttons button:nth-child(10),
-    .rating-buttons button:nth-child(11) {
+    .rating-buttons button:nth-child(10) {
       border-color: #28a745;
       color: #28a745;
     }
     
     .rating-buttons button:nth-child(8):hover:not(:disabled),
     .rating-buttons button:nth-child(9):hover:not(:disabled),
-    .rating-buttons button:nth-child(10):hover:not(:disabled),
-    .rating-buttons button:nth-child(11):hover:not(:disabled) {
+    .rating-buttons button:nth-child(10):hover:not(:disabled) {
       background-color: #28a745;
       color: #ffffff;
     }
     
-    /* Кнопка 10 на всю ширину четвертого ряда */
+    /* Кнопка 10 с короной на всю ширину четвертого ряда */
     .rating-buttons button:nth-child(11) {
-      grid-column: 1 / 4;
+      grid-column: 2 / 4;
+      border-color: #28a745;
+      color: #28a745;
+      font-size: 20px;
+      font-weight: bold;
+    }
+    
+    .rating-buttons button:nth-child(11):hover:not(:disabled) {
+      background-color: #28a745;
+      color: #ffffff;
     }
     
     /* Эффекты при нажатии */
@@ -348,7 +355,8 @@
       
       /* Кнопка 10 на всю ширину */
       .rating-buttons button:nth-child(11) {
-        grid-column: 1 / 4;
+        grid-column: 2 / 4;
+        font-size: 18px;
       }
       
       /* Кнопка "Не пробовал" по центру */
@@ -449,7 +457,7 @@
   <button onclick="sendVote(7)" disabled>7</button>
   <button onclick="sendVote(8)" disabled>8</button>
   <button onclick="sendVote(9)" disabled>9</button>
-  <button onclick="sendVote(10)" disabled>10</button>
+  <button onclick="sendVote(10)" disabled>👑 10</button>
   <button onclick="sendVote(null)" disabled>Не пробовал</button>
 </div>
 
