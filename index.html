@@ -515,7 +515,12 @@ async function loadAllBeers() {
     
     allBeers = Object.keys(beersData).map(key => ({
       id: key,
-      ...beersData[key]
+      name: beersData[key]['Beer'] || beersData[key].name || 'Неизвестное пиво',
+      country: beersData[key]['Country'] || beersData[key].country || '',
+      imageUrl: beersData[key]['Image URL'] || beersData[key].imageUrl || '',
+      abv: beersData[key]['ABV'] || beersData[key].abv || '',
+      ebc: beersData[key]['EBC'] || beersData[key].ebc || '',
+      originalId: beersData[key]['ID'] || beersData[key].id || key
     }));
     
     console.log(`Загружено ${allBeers.length} сортов пива:`, allBeers);
@@ -552,7 +557,20 @@ async function loadRandomBeer() {
     
     window.currentBeer = randomBeer;
     document.getElementById('beer-name').textContent = randomBeer.name;
-    document.getElementById('beer-info').textContent = randomBeer.country || 'Страна не указана';
+    
+    // Формируем информационную строку
+    let infoText = '';
+    if (randomBeer.country) {
+      infoText += randomBeer.country;
+    }
+    if (randomBeer.abv) {
+      infoText += (infoText ? ' • ' : '') + `${randomBeer.abv}% ABV`;
+    }
+    if (randomBeer.ebc) {
+      infoText += (infoText ? ' • ' : '') + `EBC ${randomBeer.ebc}`;
+    }
+    
+    document.getElementById('beer-info').textContent = infoText || 'Информация не указана';
     
     // Загружаем изображение если есть URL
     if (randomBeer.imageUrl && randomBeer.imageUrl.trim()) {
@@ -594,7 +612,7 @@ async function sendVote(score) {
 
   try {
     console.log('=== ОТПРАВКА ГОЛОСА В FIREBASE ===');
-    console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.id);
+    console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.name);
     console.log('userId:', userId);
     
     // Блокируем кнопки на время отправки
@@ -604,6 +622,10 @@ async function sendVote(score) {
       userId: userId,
       beerId: window.currentBeer.id,
       beerName: window.currentBeer.name,
+      beerCountry: window.currentBeer.country || '',
+      beerABV: window.currentBeer.abv || '',
+      beerEBC: window.currentBeer.ebc || '',
+      originalBeerId: window.currentBeer.originalId || window.currentBeer.id,
       score: score,
       timestamp: firebase.database.ServerValue.TIMESTAMP
     };
@@ -616,7 +638,7 @@ async function sendVote(score) {
     
     console.log('Голос успешно записан в Firebase!');
     
-    alert("Голос учтён и записан в Firebase! 🍺");
+    alert(`Голос учтён! 🍺\n\n${window.currentBeer.name}\nОценка: ${score === null ? 'Не пробовал' : score}/10`);
     
     // Загружаем следующее пиво после успешного голосования
     loadRandomBeer();
@@ -666,7 +688,18 @@ async function testFirebaseConnection() {
     if (!beersData) {
       throw new Error('Данные о пиве не найдены');
     }
+    
+    // Проверяем структуру данных
+    const firstBeer = Object.values(beersData)[0];
+    console.log('Структура первого пива:', firstBeer);
+    
+    const hasRequiredFields = firstBeer['Beer'] || firstBeer.name;
+    if (!hasRequiredFields) {
+      console.warn('⚠️ Не найдено поле "Beer" или "name" в данных пива');
+    }
+    
     console.log('✅ Данные о пиве загружаются OK');
+    console.log('Найденные поля:', Object.keys(firstBeer));
     
     // Тест 3: Проверяем запись тестового голоса
     console.log('3. Проверяем запись тестового голоса...');
