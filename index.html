@@ -39,55 +39,89 @@
 </div>
 
 <script>
-let tg = window.Telegram.WebApp;
+let tg = window.Telegram?.WebApp;
 let userId = null;
 
-if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-  Telegram.WebApp.ready();
-}
+// Инициализация Telegram WebApp
+if (tg) {
+  tg.ready();
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     userId = tg.initDataUnsafe.user.id;
   } else {
     userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
   }
+} else {
+  userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
+}
 
-  async function loadRandomBeer() {
-    try {
-      const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random');
-      const data = await res.json();
-      window.currentBeer = data;
-      document.getElementById('beer-name').textContent = data.name;
-      document.getElementById('beer-info').textContent = data.country || 'Страна не указана'; // Добавлено
-    } catch (err) {
-      console.error("Ошибка загрузки пива:", err);
-      document.getElementById('beer-name').textContent = "Ошибка :(";
+async function loadRandomBeer() {
+  try {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random');
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
+    
+    const data = await res.json();
+    
+    if (!data || !data.name) {
+      throw new Error('Некорректные данные от сервера');
+    }
+    
+    window.currentBeer = data;
+    document.getElementById('beer-name').textContent = data.name;
+    document.getElementById('beer-info').textContent = data.country || 'Страна не указана';
+  } catch (err) {
+    console.error("Ошибка загрузки пива:", err);
+    document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
+    document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
+  }
+}
+
+async function sendVote(score) {
+  // Проверяем, что пиво загружено
+  if (!window.currentBeer || !window.currentBeer.id) {
+    alert("Ошибка: данные о пиве не загружены. Попробуйте обновить страницу.");
+    return;
   }
 
-  async function sendVote(score) {
-    try {
-      const payload = {
-        action: 'vote',
-        userId: userId,
-        beerId: window.currentBeer.id,
-        score: score
-      };
+  try {
+    const payload = {
+      action: 'vote',
+      userId: userId,
+      beerId: window.currentBeer.id,
+      score: score
+    };
 
     const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
       method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(payload)
     });
 
-      const result = await res.json();
-      alert(result.message || "Голос учтён!");
-    } catch (err) {
-      console.error("Ошибка отправки голоса:", err);
-      alert("Ошибка. Попробуйте ещё раз.");
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
-  }
 
-  loadRandomBeer();
-});
+    const result = await res.json();
+    
+    if (result.success !== false) {
+      alert(result.message || "Голос учтён!");
+      // Загружаем следующее пиво после успешного голосования
+      loadRandomBeer();
+    } else {
+      alert(result.message || "Произошла ошибка при сохранении голоса");
+    }
+  } catch (err) {
+    console.error("Ошибка отправки голоса:", err);
+    alert("Ошибка соединения. Проверьте интернет и попробуйте ещё раз.");
+  }
+}
+
+// Загружаем первое пиво при загрузке страницы
+loadRandomBeer();
 </script> 
 
 </body>
