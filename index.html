@@ -50,14 +50,15 @@ Telegram.WebApp.ready(() => {
   }
 
   async function loadRandomBeer() {
-    document.getElementById('status').classList.add('hidden');
-    const data = await res.json();
-    window.currentBeer = data;
-    document.getElementById('beer-name').textContent = data.name;
-    document.getElementById('beer-info').textContent = data.country || 'Страна не указана';
+    try {
+      const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random');
+      const data = await res.json();
+      window.currentBeer = data;
+      document.getElementById('beer-name').textContent = data.name;
+      document.getElementById('beer-info').textContent = data.country || 'Страна не указана'; // Добавлено
     } catch (err) {
-    console.error("Ошибка загрузки пива:", err);
-    document.getElementById('beer-name').textContent = "Ошибка :(";
+      console.error("Ошибка загрузки пива:", err);
+      document.getElementById('beer-name').textContent = "Ошибка :(";
     }
   }
 
@@ -89,6 +90,7 @@ Telegram.WebApp.ready(() => {
 
 </body>
 </html>
+
 
 
 
