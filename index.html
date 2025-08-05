@@ -132,22 +132,19 @@
     
     /* Желтые кнопки (4-6) - второй ряд по центру */
     .rating-buttons button:nth-child(5) {
-      grid-column: 1;
-      justify-self: end;
+      grid-column: 2;
       border-color: #ffc107;
       color: #856404;
     }
     
     .rating-buttons button:nth-child(6) {
-      grid-column: 2;
-      justify-self: center;
+      grid-column: 3;
       border-color: #ffc107;
       color: #856404;
     }
     
     .rating-buttons button:nth-child(7) {
-      grid-column: 3;
-      justify-self: start;
+      grid-column: 4;
       border-color: #ffc107;
       color: #856404;
     }
@@ -337,42 +334,39 @@
       }
       
       /* Адаптивное расположение для мобильных */
-      /* Красные кнопки 0-3 в первом ряду (только 0-2, кнопка 3 переносится) */
+      /* Красные кнопки 0-3: 0,1,2 в первом ряду, 3 во втором */
       .rating-buttons button:nth-child(4) {
         grid-column: 1;
       }
       
-      /* Желтые кнопки 4-6 во втором ряду */
+      /* Желтые кнопки 4-6: 4,5 во втором ряду, 6 в третьем */
       .rating-buttons button:nth-child(5) {
-        grid-column: 1;
-        justify-self: end;
+        grid-column: 2;
       }
       
       .rating-buttons button:nth-child(6) {
-        grid-column: 2;
-        justify-self: center;
+        grid-column: 3;
       }
       
       .rating-buttons button:nth-child(7) {
-        grid-column: 3;
-        justify-self: start;
-      }
-      
-      /* Зеленые кнопки 7-10 */
-      .rating-buttons button:nth-child(8) {
         grid-column: 1;
       }
       
-      .rating-buttons button:nth-child(9) {
+      /* Зеленые кнопки 7-10: 7,8 в третьем ряду, 9,10 в четвертом */
+      .rating-buttons button:nth-child(8) {
         grid-column: 2;
       }
       
-      .rating-buttons button:nth-child(10) {
+      .rating-buttons button:nth-child(9) {
         grid-column: 3;
       }
       
-      .rating-buttons button:nth-child(11) {
+      .rating-buttons button:nth-child(10) {
         grid-column: 1;
+      }
+      
+      .rating-buttons button:nth-child(11) {
+        grid-column: 2;
       }
       
       /* Кнопка "Не пробовал" на всю ширину */
