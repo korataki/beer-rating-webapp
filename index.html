@@ -51,38 +51,45 @@ Telegram.WebApp.ready(() => {
 
   async function loadRandomBeer() {
     document.getElementById('status').classList.add('hidden');
-    const res = await fetch('https://script.google.com/macros/s/AKfycbyBfvmfJKWAUtNXQiEZ2kQMd1YJ3SWhPQSDQJqMOoyeJ1sAHqt-WvFPI4dPt1L3ATZKnA/exec?action=random');
     const data = await res.json();
     window.currentBeer = data;
     document.getElementById('beer-name').textContent = data.name;
+    document.getElementById('beer-info').textContent = data.country || 'Страна не указана';
+    } catch (err) {
+    console.error("Ошибка загрузки пива:", err);
+    document.getElementById('beer-name').textContent = "Ошибка :(";
+    }
   }
 
   async function sendVote(score) {
-    const payload = {
-      action: 'vote',
-      userId: userId,
-      beerId: window.currentBeer.id,
-      score: score
-    };
+    try {
+      const payload = {
+        action: 'vote',
+        userId: userId,
+        beerId: window.currentBeer.id,
+        score: score
+      };
 
-    const res = await fetch('https://script.google.com/macros/s/AKfycbyBfvmfJKWAUtNXQiEZ2kQMd1YJ3SWhPQSDQJqMOoyeJ1sAHqt-WvFPI4dPt1L3ATZKnA/exec', {
+    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
       method: 'POST',
       body: JSON.stringify(payload)
     });
 
-    const result = await res.json();
-    const status = document.getElementById('status');
-    status.textContent = result.message;
-    status.classList.remove('hidden');
+      const result = await res.json();
+      alert(result.message || "Голос учтён!");
+    } catch (err) {
+      console.error("Ошибка отправки голоса:", err);
+      alert("Ошибка. Попробуйте ещё раз.");
+    }
   }
 
-  Telegram.WebApp.ready();
   loadRandomBeer();
-</script>
+}); // Закрывающая скобка для Telegram.WebApp.ready()
+</script> 
 
 </body>
-
 </html>
+
 
 
 
