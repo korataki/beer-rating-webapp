@@ -213,68 +213,41 @@ async function sendVote(score) {
 
   try {
     console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.id);
+    console.log('userId:', userId);
     
-    // Попробуем сначала с FormData (часто лучше работает с Google Apps Script)
-    const formData = new FormData();
-    formData.append('action', 'vote');
-    formData.append('userId', userId);
-    formData.append('beerId', window.currentBeer.id);
-    formData.append('score', score);
-    
-    console.log('Отправляем FormData...');
-
-    let res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
-      method: 'POST',
-      body: formData
+    // Используем тот же метод, что и в тесте соединения (GET запрос)
+    const params = new URLSearchParams({
+      action: 'vote',
+      userId: userId,
+      beerId: window.currentBeer.id,
+      score: score === null ? 'null' : score.toString()
     });
-
-    console.log('Ответ на голосование (FormData), статус:', res.status);
     
-    // Если FormData не сработал, попробуем с JSON
-    if (!res.ok) {
-      console.log('FormData не сработал, пробуем JSON...');
-      
-      const payload = {
-        action: 'vote',
-        userId: userId,
-        beerId: window.currentBeer.id,
-        score: score
-      };
-      
-      console.log('JSON Payload:', payload);
-
-      res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload)
-      });
-      
-      console.log('Ответ на голосование (JSON), статус:', res.status);
-    }
+    const url = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${params}`;
+    console.log('URL для голосования:', url);
     
-    // Если все еще не работает, попробуем GET запрос с параметрами
-    if (!res.ok) {
-      console.log('POST не работает, пробуем GET...');
-      
-      const params = new URLSearchParams({
-        action: 'vote',
-        userId: userId,
-        beerId: window.currentBeer.id,
-        score: score
-      });
-      
-      res = await fetch(`https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${params}`);
-      console.log('Ответ на голосование (GET), статус:', res.status);
-    }
+    const res = await fetch(url);
+    console.log('Ответ на голосование, статус:', res.status);
+    console.log('Заголовки ответа:', [...res.headers.entries()]);
     
     if (!res.ok) {
       console.error('HTTP ошибка:', res.status, res.statusText);
       throw new Error(`HTTP error! status: ${res.status}`);
     }
 
-    const result = await res.json();
+    // Попробуем получить текст ответа сначала для диагностики
+    const responseText = await res.text();
+    console.log('Текст ответа:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Ошибка парсинга JSON:', parseError);
+      console.error('Ответ не в формате JSON:', responseText);
+      throw new Error('Сервер вернул некорректный JSON');
+    }
+    
     console.log('Результат голосования:', result);
     
     if (result.success !== false) {
@@ -288,6 +261,7 @@ async function sendVote(score) {
     console.error("Ошибка отправки голоса:", err);
     console.error("Детали ошибки:", err.message);
     console.error("Тип ошибки:", err.name);
+    console.error("Stack trace:", err.stack);
     
     // Более детальное сообщение об ошибке
     if (err.name === 'TypeError' && err.message.includes('fetch')) {
@@ -296,6 +270,8 @@ async function sendVote(score) {
       alert(`Ошибка сервера: ${err.message}. Попробуйте позже.`);
     } else if (err.message.includes('CORS')) {
       alert("Ошибка CORS. Проверьте настройки Google Apps Script.");
+    } else if (err.message.includes('JSON')) {
+      alert("Ошибка формата ответа от сервера. Проверьте Google Apps Script.");
     } else {
       alert(`Ошибка: ${err.message}. Смотрите консоль для деталей.`);
     }
@@ -307,20 +283,54 @@ loadRandomBeer();
 
 async function testConnection() {
   try {
-    console.log('Проверяем соединение с Google Apps Script...');
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=test');
+    console.log('=== ТЕСТ СОЕДИНЕНИЯ ===');
+    
+    // Сначала тестируем базовое соединение
+    console.log('1. Проверяем базовое соединение...');
+    let res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=test');
     
     if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+      throw new Error(`Базовое соединение не работает! Статус: ${res.status}`);
     }
-
-    const result = await res.json();
-    console.log('Результат теста соединения:', result);
-    alert(result.message || 'Соединение успешно!');
+    
+    let result = await res.json();
+    console.log('Базовое соединение OK:', result);
+    
+    // Теперь тестируем голосование с тестовыми данными
+    console.log('2. Тестируем функцию голосования...');
+    const testParams = new URLSearchParams({
+      action: 'vote',
+      userId: 'test_user_123',
+      beerId: 'test_beer_456',
+      score: '5'
+    });
+    
+    const testUrl = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${testParams}`;
+    console.log('URL для тестового голосования:', testUrl);
+    
+    res = await fetch(testUrl);
+    console.log('Статус тестового голосования:', res.status);
+    
+    if (!res.ok) {
+      throw new Error(`Тестовое голосование не работает! Статус: ${res.status}`);
+    }
+    
+    const responseText = await res.text();
+    console.log('Ответ тестового голосования (текст):', responseText);
+    
+    try {
+      result = JSON.parse(responseText);
+      console.log('Ответ тестового голосования (JSON):', result);
+      alert('✅ Все тесты прошли успешно!\n\nБазовое соединение: OK\nТестовое голосование: OK');
+    } catch (parseError) {
+      console.error('Ошибка парсинга ответа голосования:', parseError);
+      alert(`⚠️ Базовое соединение работает, но голосование возвращает некорректный JSON:\n\n${responseText}`);
+    }
+    
   } catch (err) {
     console.error("Ошибка теста соединения:", err);
     console.error("Детали ошибки:", err.message);
-    alert(`Ошибка соединения: ${err.message}. Попробуйте позже.`);
+    alert(`❌ Ошибка теста: ${err.message}\n\nСмотрите консоль для деталей.`);
   }
 }
 </script> 
