@@ -5,17 +5,128 @@
   <title>Оценка Пива</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
+    /* Принудительная светлая тема */
     body {
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       padding: 20px;
       text-align: center;
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      margin: 0;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
+    
+    /* Заголовок пива */
+    #beer-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0 10px 0;
+      color: #333333 !important;
+      line-height: 1.3;
+    }
+    
+    /* Информация о пиве */
+    #beer-info {
+      font-size: 16px;
+      color: #666666 !important;
+      margin-bottom: 30px;
+    }
+    
+    /* Контейнер для кнопок */
+    .rating-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+    
+    /* Стили кнопок оценок */
     .rating-buttons button {
-      margin: 4px;
-      padding: 10px 16px;
+      padding: 15px 10px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid #007AFF;
+      border-radius: 12px;
+      background-color: #ffffff;
+      color: #007AFF;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 50px;
+      box-shadow: 0 2px 4px rgba(0, 122, 255, 0.1);
+    }
+    
+    /* Эффекты при наведении и нажатии */
+    .rating-buttons button:hover {
+      background-color: #007AFF;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 122, 255, 0.2);
+    }
+    
+    .rating-buttons button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 122, 255, 0.1);
+    }
+    
+    /* Специальная кнопка "Не знаю" */
+    .rating-buttons button:last-child {
+      grid-column: span 2;
+      background-color: #f8f9fa;
+      border-color: #6c757d;
+      color: #6c757d;
       font-size: 16px;
     }
-    .hidden { display: none; }
+    
+    .rating-buttons button:last-child:hover {
+      background-color: #6c757d;
+      color: #ffffff;
+    }
+    
+    /* Адаптивность для маленьких экранов */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+      
+      .rating-buttons {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        max-width: 300px;
+      }
+      
+      .rating-buttons button {
+        padding: 12px 8px;
+        font-size: 16px;
+        min-height: 45px;
+      }
+      
+      .rating-buttons button:last-child {
+        grid-column: span 3;
+        font-size: 14px;
+      }
+      
+      #beer-name {
+        font-size: 20px;
+      }
+    }
+    
+    .hidden { 
+      display: none; 
+    }
+    
+    /* Принудительное переопределение темных тем */
+    * {
+      background-color: inherit !important;
+      color: inherit !important;
+    }
+    
+    html {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
   </style>
 </head>
 <body>
@@ -45,6 +156,10 @@ let userId = null;
 // Инициализация Telegram WebApp
 if (tg) {
   tg.ready();
+  // Принудительно устанавливаем светлую тему
+  tg.setHeaderColor('#ffffff');
+  tg.setBackgroundColor('#ffffff');
+  
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     userId = tg.initDataUnsafe.user.id;
   } else {
