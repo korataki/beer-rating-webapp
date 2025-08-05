@@ -42,7 +42,9 @@
 let tg = window.Telegram.WebApp;
 let userId = null;
 
-Telegram.WebApp.ready(() => {
+if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+  Telegram.WebApp.ready();
+}
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     userId = tg.initDataUnsafe.user.id;
   } else {
@@ -85,14 +87,8 @@ Telegram.WebApp.ready(() => {
   }
 
   loadRandomBeer();
-}); // Закрывающая скобка для Telegram.WebApp.ready()
+});
 </script> 
 
 </body>
 </html>
-
-
-
-
-
-
