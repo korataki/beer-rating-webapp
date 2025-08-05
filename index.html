@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>Оценка Пива</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  
   <style>
     /* Принудительная светлая тема */
     body {
@@ -425,8 +430,8 @@
   <button onclick="showRating()" class="rating-btn">
     📊 Посмотреть рейтинг
   </button>
-  <button onclick="testVoteWriting()" class="test-btn" style="background-color: #fd7e14;">
-    🧪 Тест записи голоса
+  <button onclick="testFirebaseConnection()" class="test-btn" style="background-color: #fd7e14;">
+    🔥 Тест Firebase
   </button>
   <button onclick="testConnection()" class="test-btn">
     🔧 Тест соединения
@@ -448,9 +453,27 @@
 </div>
 
 <script>
+// Firebase конфигурация
+// ВАЖНО: Замените эту конфигурацию на вашу из Firebase Console
+// Перейдите в Firebase Console -> Project Settings -> General -> Your apps -> Config
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY", // Замените на ваш API ключ
+  authDomain: "beer-rating-f30c9.firebaseapp.com",
+  databaseURL: "https://beer-rating-f30c9-default-rtdb.firebaseio.com",
+  projectId: "beer-rating-f30c9",
+  storageBucket: "beer-rating-f30c9.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID", // Замените на ваш Sender ID
+  appId: "YOUR_APP_ID" // Замените на ваш App ID
+};
+
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
 let tg = window.Telegram?.WebApp;
 let userId = null;
 let isLoading = false;
+let allBeers = [];
 
 // Инициализация Telegram WebApp
 if (tg) {
@@ -468,6 +491,9 @@ if (tg) {
   userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
 }
 
+console.log('Firebase инициализирован');
+console.log('User ID:', userId);
+
 function enableButtons() {
   const buttons = document.querySelectorAll('.rating-buttons button');
   buttons.forEach(button => button.disabled = false);
@@ -476,6 +502,29 @@ function enableButtons() {
 function disableButtons() {
   const buttons = document.querySelectorAll('.rating-buttons button');
   buttons.forEach(button => button.disabled = true);
+}
+
+async function loadAllBeers() {
+  try {
+    console.log('Загружаем все сорта пива из Firebase...');
+    const snapshot = await database.ref('beers').once('value');
+    const beersData = snapshot.val();
+    
+    if (!beersData) {
+      throw new Error('Данные о пиве не найдены в Firebase');
+    }
+    
+    allBeers = Object.keys(beersData).map(key => ({
+      id: key,
+      ...beersData[key]
+    }));
+    
+    console.log(`Загружено ${allBeers.length} сортов пива:`, allBeers);
+    return allBeers;
+  } catch (error) {
+    console.error('Ошибка загрузки пива из Firebase:', error);
+    throw error;
+  }
 }
 
 async function loadRandomBeer() {
@@ -491,54 +540,31 @@ async function loadRandomBeer() {
     document.getElementById('beer-image').style.display = 'none';
     disableButtons();
     
-    // Добавляем timeout для быстрого реагирования на медленные запросы
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд timeout
-    
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random', {
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    
-    console.log('Ответ получен, статус:', res.status);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+    // Загружаем все пиво если еще не загружено
+    if (allBeers.length === 0) {
+      await loadAllBeers();
     }
     
-    const data = await res.json();
-    console.log('Данные получены:', data);
-    console.log('Структура данных:');
-    console.log('  - ID пива:', data.id);
-    console.log('  - Название:', data.name);
-    console.log('  - Страна:', data.country);
-    console.log('  - URL изображения:', data.imageUrl);
-    console.log('  - Все поля:', Object.keys(data));
+    // Выбираем случайное пиво
+    const randomIndex = Math.floor(Math.random() * allBeers.length);
+    const randomBeer = allBeers[randomIndex];
     
-    if (!data || !data.name) {
-      throw new Error('Некорректные данные от сервера');
-    }
+    console.log('Выбрано случайное пиво:', randomBeer);
     
-    if (!data.id) {
-      console.warn('⚠️ ВНИМАНИЕ: Поле ID отсутствует! Это может быть причиной проблем с записью голосов.');
-      console.warn('Убедитесь, что Google Apps Script возвращает поле "id" для каждого пива.');
-    }
-    
-    window.currentBeer = data;
-    document.getElementById('beer-name').textContent = data.name;
-    document.getElementById('beer-info').textContent = data.country || 'Страна не указана';
+    window.currentBeer = randomBeer;
+    document.getElementById('beer-name').textContent = randomBeer.name;
+    document.getElementById('beer-info').textContent = randomBeer.country || 'Страна не указана';
     
     // Загружаем изображение если есть URL
-    if (data.imageUrl && data.imageUrl.trim()) {
+    if (randomBeer.imageUrl && randomBeer.imageUrl.trim()) {
       const img = document.getElementById('beer-image');
-      img.src = data.imageUrl;
+      img.src = randomBeer.imageUrl;
       img.style.display = 'block';
       img.onload = function() {
         console.log('Изображение загружено успешно');
       };
       img.onerror = function() {
-        console.log('Ошибка загрузки изображения:', data.imageUrl);
+        console.log('Ошибка загрузки изображения:', randomBeer.imageUrl);
         this.style.display = 'none';
       };
     }
@@ -547,15 +573,9 @@ async function loadRandomBeer() {
     
   } catch (err) {
     console.error("Ошибка загрузки пива:", err);
-    console.error("Детали ошибки:", err.message);
     
-    if (err.name === 'AbortError') {
-      document.getElementById('beer-name').textContent = "Медленное соединение :(";
-      document.getElementById('beer-info').textContent = "Попробуйте обновить страницу или проверьте интернет";
-    } else {
-      document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
-      document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
-    }
+    document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
+    document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
   } finally {
     isLoading = false;
   }
@@ -574,171 +594,38 @@ async function sendVote(score) {
   }
 
   try {
-    console.log('=== ОТПРАВКА ГОЛОСА ===');
+    console.log('=== ОТПРАВКА ГОЛОСА В FIREBASE ===');
     console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.id);
     console.log('userId:', userId);
-    console.log('Данные пива:', window.currentBeer);
     
     // Блокируем кнопки на время отправки
     disableButtons();
     
-    let success = false;
-    let result = null;
+    const voteData = {
+      userId: userId,
+      beerId: window.currentBeer.id,
+      beerName: window.currentBeer.name,
+      score: score,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
     
-    // Метод 1: GET запрос (как в тесте)
-    try {
-      console.log('Попытка 1: GET запрос...');
-      const params = new URLSearchParams({
-        action: 'vote',
-        userId: userId,
-        beerId: window.currentBeer.id,
-        score: score === null ? 'null' : score.toString()
-      });
-      
-      const url = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${params}`;
-      console.log('GET URL:', url);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 8000);
-      
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-      
-      console.log('GET ответ - статус:', res.status);
-      
-      if (res.ok) {
-        const responseText = await res.text();
-        console.log('GET ответ - текст:', responseText);
-        
-        try {
-          result = JSON.parse(responseText);
-          console.log('GET ответ - JSON:', result);
-          success = true;
-        } catch (e) {
-          console.log('GET: Не удалось распарсить JSON, пробуем другой метод');
-        }
-      }
-    } catch (err) {
-      console.log('GET метод не сработал:', err.message);
-    }
+    console.log('Данные голоса:', voteData);
     
-    // Метод 2: POST с FormData (если GET не сработал)
-    if (!success) {
-      try {
-        console.log('Попытка 2: POST с FormData...');
-        const formData = new FormData();
-        formData.append('action', 'vote');
-        formData.append('userId', userId);
-        formData.append('beerId', window.currentBeer.id);
-        formData.append('score', score === null ? 'null' : score.toString());
-        
-        console.log('FormData содержимое:');
-        for (let [key, value] of formData.entries()) {
-          console.log(`  ${key}: ${value}`);
-        }
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
-        const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        console.log('POST FormData ответ - статус:', res.status);
-        
-        if (res.ok) {
-          const responseText = await res.text();
-          console.log('POST FormData ответ - текст:', responseText);
-          
-          try {
-            result = JSON.parse(responseText);
-            console.log('POST FormData ответ - JSON:', result);
-            success = true;
-          } catch (e) {
-            console.log('POST FormData: Не удалось распарсить JSON, пробуем другой метод');
-          }
-        }
-      } catch (err) {
-        console.log('POST FormData метод не сработал:', err.message);
-      }
-    }
+    // Записываем голос в Firebase
+    const voteRef = database.ref('votes').push();
+    await voteRef.set(voteData);
     
-    // Метод 3: POST с JSON (если FormData не сработал)
-    if (!success) {
-      try {
-        console.log('Попытка 3: POST с JSON...');
-        const payload = {
-          action: 'vote',
-          userId: userId,
-          beerId: window.currentBeer.id,
-          score: score === null ? null : score
-        };
-        
-        console.log('JSON payload:', payload);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
-        
-        const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-        
-        console.log('POST JSON ответ - статус:', res.status);
-        
-        if (res.ok) {
-          const responseText = await res.text();
-          console.log('POST JSON ответ - текст:', responseText);
-          
-          try {
-            result = JSON.parse(responseText);
-            console.log('POST JSON ответ - JSON:', result);
-            success = true;
-          } catch (e) {
-            console.log('POST JSON: Не удалось распарсить JSON');
-            // Если JSON не парсится, но статус OK, возможно это успех
-            if (responseText.includes('success') || responseText.includes('OK') || responseText.includes('записан')) {
-              result = { success: true, message: 'Голос записан' };
-              success = true;
-            }
-          }
-        }
-      } catch (err) {
-        console.log('POST JSON метод не сработал:', err.message);
-      }
-    }
+    console.log('Голос успешно записан в Firebase!');
     
-    console.log('=== РЕЗУЛЬТАТ ОТПРАВКИ ===');
-    console.log('Успех:', success);
-    console.log('Результат:', result);
+    alert("Голос учтён и записан в Firebase! 🍺");
     
-    if (success && result) {
-      if (result.success !== false) {
-        alert(result.message || "Голос учтён и записан в таблицу!");
-        // Загружаем следующее пиво после успешного голосования
-        loadRandomBeer();
-      } else {
-        alert(result.message || "Произошла ошибка при сохранении голоса в таблицу");
-        enableButtons();
-      }
-    } else {
-      // Если ни один метод не сработал
-      alert("Не удалось записать голос ни одним из методов. Проверьте настройки Google Apps Script.\n\nСмотрите консоль для деталей.");
-      enableButtons();
-    }
+    // Загружаем следующее пиво после успешного голосования
+    loadRandomBeer();
     
   } catch (err) {
-    console.error("Общая ошибка отправки голоса:", err);
+    console.error("Ошибка отправки голоса в Firebase:", err);
     enableButtons();
-    alert(`Ошибка: ${err.message}. Смотрите консоль для деталей.`);
+    alert(`Ошибка записи в Firebase: ${err.message}`);
   }
 }
 
@@ -753,65 +640,68 @@ window.onclick = function(event) {
   }
 }
 
-async function testConnection() {
+async function testFirebaseConnection() {
   try {
-    console.log('=== ТЕСТ СОЕДИНЕНИЯ ===');
+    console.log('=== ТЕСТ FIREBASE ===');
     
-    const testBtn = document.querySelector('.test-btn');
+    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
     testBtn.disabled = true;
     testBtn.innerHTML = '<span class="loading-spinner"></span> Тестирование...';
     
-    // Сначала тестируем базовое соединение
-    console.log('1. Проверяем базовое соединение...');
-    let res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=test');
+    // Тест 1: Проверяем подключение к Firebase
+    console.log('1. Проверяем подключение к Firebase...');
+    const testRef = database.ref('.info/connected');
+    const snapshot = await testRef.once('value');
+    const connected = snapshot.val();
     
-    if (!res.ok) {
-      throw new Error(`Базовое соединение не работает! Статус: ${res.status}`);
+    if (!connected) {
+      throw new Error('Нет подключения к Firebase');
     }
+    console.log('✅ Подключение к Firebase OK');
     
-    let result = await res.json();
-    console.log('Базовое соединение OK:', result);
+    // Тест 2: Проверяем загрузку пива
+    console.log('2. Проверяем загрузку данных о пиве...');
+    const beersSnapshot = await database.ref('beers').limitToFirst(1).once('value');
+    const beersData = beersSnapshot.val();
     
-    // Теперь тестируем голосование с тестовыми данными
-    console.log('2. Тестируем функцию голосования...');
-    const testParams = new URLSearchParams({
-      action: 'vote',
-      userId: 'test_user_123',
-      beerId: 'test_beer_456',
-      score: '5'
-    });
-    
-    const testUrl = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${testParams}`;
-    console.log('URL для тестового голосования:', testUrl);
-    
-    res = await fetch(testUrl);
-    console.log('Статус тестового голосования:', res.status);
-    
-    if (!res.ok) {
-      throw new Error(`Тестовое голосование не работает! Статус: ${res.status}`);
+    if (!beersData) {
+      throw new Error('Данные о пиве не найдены');
     }
+    console.log('✅ Данные о пиве загружаются OK');
     
-    const responseText = await res.text();
-    console.log('Ответ тестового голосования (текст):', responseText);
+    // Тест 3: Проверяем запись тестового голоса
+    console.log('3. Проверяем запись тестового голоса...');
+    const testVote = {
+      userId: 'test_user',
+      beerId: 'test_beer',
+      beerName: 'Test Beer',
+      score: 5,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
     
-    try {
-      result = JSON.parse(responseText);
-      console.log('Ответ тестового голосования (JSON):', result);
-      alert('✅ Все тесты прошли успешно!\n\nБазовое соединение: OK\nТестовое голосование: OK');
-    } catch (parseError) {
-      console.error('Ошибка парсинга ответа голосования:', parseError);
-      alert(`⚠️ Базовое соединение работает, но голосование возвращает некорректный JSON:\n\n${responseText}`);
-    }
+    const testVoteRef = database.ref('votes').push();
+    await testVoteRef.set(testVote);
+    console.log('✅ Запись голоса OK');
+    
+    // Удаляем тестовый голос
+    await testVoteRef.remove();
+    console.log('✅ Тестовый голос удален');
+    
+    alert('🔥 Firebase работает отлично!\n\n✅ Подключение: OK\n✅ Загрузка данных: OK\n✅ Запись голосов: OK');
     
   } catch (err) {
-    console.error("Ошибка теста соединения:", err);
-    console.error("Детали ошибки:", err.message);
-    alert(`❌ Ошибка теста: ${err.message}\n\nСмотрите консоль для деталей.`);
+    console.error("Ошибка теста Firebase:", err);
+    alert(`❌ Ошибка Firebase: ${err.message}\n\nСмотрите консоль для деталей.`);
   } finally {
-    const testBtn = document.querySelector('.test-btn');
+    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
     testBtn.disabled = false;
-    testBtn.innerHTML = '🔧 Тест соединения';
+    testBtn.innerHTML = '🔥 Тест Firebase';
   }
+}
+
+async function testConnection() {
+  // Оставляем старую функцию для совместимости, но теперь она тестирует Firebase
+  await testFirebaseConnection();
 }
 
 function showRating() {
@@ -825,7 +715,7 @@ function closeRating() {
 
 async function loadAllRatings() {
   try {
-    console.log('Загружаем общий рейтинг...');
+    console.log('Загружаем рейтинг из Firebase...');
     
     const ratingBtn = document.querySelector('.rating-btn');
     ratingBtn.disabled = true;
@@ -834,119 +724,78 @@ async function loadAllRatings() {
     const ratingList = document.getElementById('ratingList');
     ratingList.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="loading-spinner"></span><span class="loading-text">Загрузка рейтинга...</span></div>';
     
-    // Добавляем timeout для рейтинга
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 секунд timeout
+    // Загружаем все голоса из Firebase
+    const votesSnapshot = await database.ref('votes').once('value');
+    const votesData = votesSnapshot.val();
     
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=allRatings', {
-      signal: controller.signal
+    if (!votesData) {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Пока нет голосов</div>';
+      return;
+    }
+    
+    // Группируем голоса по пиву и вычисляем средний рейтинг
+    const beerRatings = {};
+    
+    Object.values(votesData).forEach(vote => {
+      if (vote.score !== null && vote.score !== 'null') {
+        const beerId = vote.beerId;
+        const beerName = vote.beerName || `Пиво ${beerId}`;
+        const score = parseFloat(vote.score);
+        
+        if (!beerRatings[beerId]) {
+          beerRatings[beerId] = {
+            name: beerName,
+            scores: [],
+            totalScore: 0,
+            count: 0
+          };
+        }
+        
+        beerRatings[beerId].scores.push(score);
+        beerRatings[beerId].totalScore += score;
+        beerRatings[beerId].count += 1;
+      }
     });
     
-    clearTimeout(timeoutId);
+    // Вычисляем средние рейтинги и сортируем
+    const ratingsArray = Object.keys(beerRatings).map(beerId => {
+      const rating = beerRatings[beerId];
+      return {
+        name: rating.name,
+        averageRating: rating.totalScore / rating.count,
+        voteCount: rating.count
+      };
+    }).sort((a, b) => b.averageRating - a.averageRating);
     
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
-    }
-
-    const data = await res.json();
-    console.log('Данные рейтинга получены:', data);
-
-    if (!data || !Array.isArray(data)) {
-      throw new Error('Некорректные данные рейтинга от сервера');
-    }
-
+    console.log('Рейтинги вычислены:', ratingsArray);
+    
     ratingList.innerHTML = ''; // Очищаем предыдущий список
-
-    if (data.length === 0) {
+    
+    if (ratingsArray.length === 0) {
       ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Пока нет оценок</div>';
       return;
     }
 
-    data.forEach(item => {
+    ratingsArray.forEach(item => {
       const ratingItem = document.createElement('div');
       ratingItem.className = 'rating-item';
       ratingItem.innerHTML = `
-        <div class="beer-name">${item.name}</div>
+        <div class="beer-name">${item.name} <small>(${item.voteCount} голосов)</small></div>
         <div class="beer-rating ${item.averageRating >= 7 ? 'rating-high' : item.averageRating >= 4 ? 'rating-medium' : 'rating-low'}">
           ${item.averageRating.toFixed(1)}
         </div>
       `;
       ratingList.appendChild(ratingItem);
     });
+    
   } catch (err) {
-    console.error("Ошибка загрузки общего рейтинга:", err);
-    console.error("Детали ошибки:", err.message);
+    console.error("Ошибка загрузки рейтинга из Firebase:", err);
     
     const ratingList = document.getElementById('ratingList');
-    if (err.name === 'AbortError') {
-      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Медленная загрузка рейтинга. Попробуйте позже.</div>';
-    } else {
-      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить рейтинг. Попробуйте позже.</div>';
-    }
+    ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить рейтинг из Firebase. Попробуйте позже.</div>';
   } finally {
     const ratingBtn = document.querySelector('.rating-btn');
     ratingBtn.disabled = false;
-  }
-}
-
-async function testVoteWriting() {
-  try {
-    console.log('=== ТЕСТ ЗАПИСИ ГОЛОСА ===');
-    
-    const testBtn = document.querySelector('.test-btn');
-    testBtn.disabled = true;
-    testBtn.innerHTML = '<span class="loading-spinner"></span> Тестирование...';
-    
-    // Сначала тестируем базовое соединение
-    console.log('1. Проверяем базовое соединение...');
-    let res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=test');
-    
-    if (!res.ok) {
-      throw new Error(`Базовое соединение не работает! Статус: ${res.status}`);
-    }
-    
-    let result = await res.json();
-    console.log('Базовое соединение OK:', result);
-    
-    // Теперь тестируем голосование с тестовыми данными
-    console.log('2. Тестируем функцию голосования...');
-    const testParams = new URLSearchParams({
-      action: 'vote',
-      userId: 'test_user_123',
-      beerId: 'test_beer_456',
-      score: '5'
-    });
-    
-    const testUrl = `https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?${testParams}`;
-    console.log('URL для тестового голосования:', testUrl);
-    
-    res = await fetch(testUrl);
-    console.log('Статус тестового голосования:', res.status);
-    
-    if (!res.ok) {
-      throw new Error(`Тестовое голосование не работает! Статус: ${res.status}`);
-    }
-    
-    const responseText = await res.text();
-    console.log('Ответ тестового голосования (текст):', responseText);
-    
-    try {
-      result = JSON.parse(responseText);
-      console.log('Ответ тестового голосования (JSON):', result);
-      alert('✅ Тест записи голоса прошел успешно!\n\nБазовое соединение: OK\nТестовое голосование: OK');
-    } catch (parseError) {
-      console.error('Ошибка парсинга ответа голосования:', parseError);
-      alert(`⚠️ Базовое соединение работает, но голосование возвращает некорректный JSON:\n\n${responseText}`);
-    }
-    
-  } catch (err) {
-    console.error("Ошибка теста записи голоса:", err);
-    console.error("Детали ошибки:", err.message);
-    alert(`❌ Ошибка теста записи голоса: ${err.message}\n\nСмотрите консоль для деталей.`);
-  } finally {
-    const testBtn = document.querySelector('.test-btn');
-    testBtn.disabled = false;
-    testBtn.innerHTML = '🧪 Тест записи голоса';
   }
 }
 </script> 
