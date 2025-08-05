@@ -4,90 +4,799 @@
   <meta charset="UTF-8">
   <title>Оценка Пива</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+  
   <style>
+    /* Принудительная светлая тема */
     body {
-      font-family: sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
       padding: 20px;
       text-align: center;
+      background-color: #ffffff !important;
+      color: #000000 !important;
+      margin: 0;
+      min-height: 100vh;
+      box-sizing: border-box;
     }
-    .rating-buttons button {
-      margin: 4px;
-      padding: 10px 16px;
+    
+    /* Контейнер для пива */
+    .beer-container {
+      margin-bottom: 30px;
+    }
+    
+    /* Изображение пива */
+    .beer-image {
+      width: 200px;
+      height: 200px;
+      object-fit: cover;
+      border-radius: 12px;
+      margin: 0 auto 15px auto;
+      display: block;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      background-color: #f8f9fa;
+    }
+    
+    .beer-image.loading {
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f8f9fa"/><text x="50" y="50" text-anchor="middle" dy="0.3em" font-family="Arial" font-size="12" fill="%236c757d">🍺</text></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    
+    /* Заголовок пива */
+    #beer-name {
+      font-size: 24px;
+      font-weight: bold;
+      margin: 20px 0 10px 0;
+      color: #333333 !important;
+      line-height: 1.3;
+    }
+    
+    /* Информация о пиве */
+    #beer-info {
       font-size: 16px;
+      color: #666666 !important;
+      margin-bottom: 30px;
     }
-    .hidden { display: none; }
+    
+    /* Индикатор загрузки */
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #007AFF;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 10px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .loading-text {
+      color: #666666;
+      font-style: italic;
+    }
+    
+    /* Контейнер для кнопок */
+    .rating-buttons {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 0 10px;
+    }
+    
+    /* Стили кнопок оценок */
+    .rating-buttons button {
+      padding: 15px 10px;
+      font-size: 18px;
+      font-weight: bold;
+      border: 2px solid;
+      border-radius: 12px;
+      background-color: #ffffff;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      min-height: 50px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .rating-buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* Красные кнопки (0-3) - первый ряд */
+    .rating-buttons button:nth-child(1),
+    .rating-buttons button:nth-child(2),
+    .rating-buttons button:nth-child(3),
+    .rating-buttons button:nth-child(4) {
+      border-color: #dc3545;
+      color: #dc3545;
+    }
+    
+    .rating-buttons button:nth-child(1):hover:not(:disabled),
+    .rating-buttons button:nth-child(2):hover:not(:disabled),
+    .rating-buttons button:nth-child(3):hover:not(:disabled),
+    .rating-buttons button:nth-child(4):hover:not(:disabled) {
+      background-color: #dc3545;
+      color: #ffffff;
+    }
+    
+    /* Желтые кнопки (4-6) - второй ряд по центру */
+    .rating-buttons button:nth-child(5) {
+      grid-column: 2;
+      border-color: #ffc107;
+      color: #856404;
+    }
+    
+    .rating-buttons button:nth-child(6) {
+      grid-column: 3;
+      border-color: #ffc107;
+      color: #856404;
+    }
+    
+    .rating-buttons button:nth-child(7) {
+      grid-column: 4;
+      border-color: #ffc107;
+      color: #856404;
+    }
+    
+    .rating-buttons button:nth-child(5):hover:not(:disabled),
+    .rating-buttons button:nth-child(6):hover:not(:disabled),
+    .rating-buttons button:nth-child(7):hover:not(:disabled) {
+      background-color: #ffc107;
+      color: #ffffff;
+    }
+    
+    /* Зеленые кнопки (7-10) - третий ряд */
+    .rating-buttons button:nth-child(8),
+    .rating-buttons button:nth-child(9),
+    .rating-buttons button:nth-child(10),
+    .rating-buttons button:nth-child(11) {
+      border-color: #28a745;
+      color: #28a745;
+    }
+    
+    .rating-buttons button:nth-child(8):hover:not(:disabled),
+    .rating-buttons button:nth-child(9):hover:not(:disabled),
+    .rating-buttons button:nth-child(10):hover:not(:disabled),
+    .rating-buttons button:nth-child(11):hover:not(:disabled) {
+      background-color: #28a745;
+      color: #ffffff;
+    }
+    
+    /* Эффекты при нажатии */
+    .rating-buttons button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Специальная кнопка "Не пробовал" - по центру */
+    .rating-buttons button:last-child {
+      grid-column: 2 / 4;
+      background-color: #f8f9fa;
+      border-color: #6c757d;
+      color: #6c757d;
+      font-size: 16px;
+      margin-top: 10px;
+    }
+    
+    .rating-buttons button:last-child:hover:not(:disabled) {
+      background-color: #6c757d;
+      color: #ffffff;
+    }
+    
+    /* Кнопки управления */
+    .control-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      margin-top: 30px;
+    }
+    
+    .control-buttons button {
+      padding: 12px 30px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: bold;
+      transition: all 0.2s ease;
+      min-width: 200px;
+      position: relative;
+    }
+    
+    .control-buttons button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .test-btn {
+      background-color: #28a745;
+      color: white;
+    }
+    
+    .test-btn:hover:not(:disabled) {
+      background-color: #218838;
+      transform: translateY(-1px);
+    }
+    
+    .rating-btn {
+      background-color: #007AFF;
+      color: white;
+    }
+    
+    .rating-btn:hover:not(:disabled) {
+      background-color: #0056b3;
+      transform: translateY(-1px);
+    }
+    
+    /* Модальное окно для рейтинга */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+      background-color: #ffffff;
+      margin: 5% auto;
+      padding: 20px;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      position: absolute;
+      right: 15px;
+      top: 10px;
+    }
+    
+    .close:hover {
+      color: #000;
+    }
+    
+    .rating-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .rating-item:last-child {
+      border-bottom: none;
+    }
+    
+    .beer-name {
+      font-weight: bold;
+      flex: 1;
+    }
+    
+    .beer-rating {
+      font-size: 18px;
+      font-weight: bold;
+      padding: 5px 10px;
+      border-radius: 20px;
+      color: white;
+      min-width: 50px;
+      text-align: center;
+    }
+    
+    .rating-high { background-color: #28a745; }
+    .rating-medium { background-color: #ffc107; color: #856404; }
+    .rating-low { background-color: #dc3545; }
+    
+    /* Адаптивность для маленьких экранов */
+    @media (max-width: 480px) {
+      body {
+        padding: 15px;
+      }
+      
+      .beer-image {
+        width: 150px;
+        height: 150px;
+      }
+      
+      .rating-buttons {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+        max-width: 300px;
+      }
+      
+      .rating-buttons button {
+        padding: 12px 8px;
+        font-size: 16px;
+        min-height: 45px;
+      }
+      
+      /* Адаптивное расположение для мобильных */
+      /* Красные кнопки 0-3 в первом ряду (только 0-2, кнопка 3 переносится) */
+      .rating-buttons button:nth-child(4) {
+        grid-column: 1;
+      }
+      
+      /* Желтые кнопки 4-6 во втором ряду */
+      .rating-buttons button:nth-child(5) {
+        grid-column: 2;
+      }
+      
+      .rating-buttons button:nth-child(6) {
+        grid-column: 3;
+      }
+      
+      .rating-buttons button:nth-child(7) {
+        grid-column: 1;
+      }
+      
+      /* Зеленые кнопки 7-10 */
+      .rating-buttons button:nth-child(8) {
+        grid-column: 2;
+      }
+      
+      .rating-buttons button:nth-child(9) {
+        grid-column: 3;
+      }
+      
+      .rating-buttons button:nth-child(10) {
+        grid-column: 1;
+      }
+      
+      .rating-buttons button:nth-child(11) {
+        grid-column: 2;
+      }
+      
+      /* Кнопка "Не пробовал" на всю ширину */
+      .rating-buttons button:last-child {
+        grid-column: 1 / 4;
+        font-size: 14px;
+      }
+      
+      #beer-name {
+        font-size: 20px;
+      }
+      
+      .control-buttons button {
+        width: 100%;
+        max-width: 280px;
+        font-size: 14px;
+        padding: 10px 20px;
+      }
+    }
+    
+    .hidden { 
+      display: none; 
+    }
+    
+    /* Принудительное переопределение темных тем */
+    * {
+      background-color: inherit !important;
+      color: inherit !important;
+    }
+    
+    html {
+      background-color: #ffffff !important;
+      color: #000000 !important;
+    }
   </style>
 </head>
 <body>
 
-<h2 id="beer-name">Загрузка...</h2>
-<p id="beer-info"></p>
+<div class="beer-container">
+  <img id="beer-image" class="beer-image loading" style="display: none;" alt="Фото пива" onerror="this.style.display='none'">
+  <h2 id="beer-name"><span class="loading-spinner"></span><span class="loading-text">Загрузка...</span></h2>
+  <p id="beer-info"></p>
+</div>
 
 <div class="rating-buttons" id="rating-buttons">
-  <button onclick="sendVote(0)">0</button>
-  <button onclick="sendVote(1)">1</button>
-  <button onclick="sendVote(2)">2</button>
-  <button onclick="sendVote(3)">3</button>
-  <button onclick="sendVote(4)">4</button>
-  <button onclick="sendVote(5)">5</button>
-  <button onclick="sendVote(6)">6</button>
-  <button onclick="sendVote(7)">7</button>
-  <button onclick="sendVote(8)">8</button>
-  <button onclick="sendVote(9)">9</button>
-  <button onclick="sendVote(10)">10</button>
-  <button onclick="sendVote(null)">Не знаю 🤷</button>
+  <button onclick="sendVote(0)" disabled>0</button>
+  <button onclick="sendVote(1)" disabled>1</button>
+  <button onclick="sendVote(2)" disabled>2</button>
+  <button onclick="sendVote(3)" disabled>3</button>
+  <button onclick="sendVote(4)" disabled>4</button>
+  <button onclick="sendVote(5)" disabled>5</button>
+  <button onclick="sendVote(6)" disabled>6</button>
+  <button onclick="sendVote(7)" disabled>7</button>
+  <button onclick="sendVote(8)" disabled>8</button>
+  <button onclick="sendVote(9)" disabled>9</button>
+  <button onclick="sendVote(10)" disabled>10</button>
+  <button onclick="sendVote(null)" disabled>Не пробовал</button>
+</div>
+
+<div class="control-buttons">
+  <button onclick="showRating()" class="rating-btn">
+    📊 Посмотреть рейтинг
+  </button>
+  <button onclick="testFirebaseConnection()" class="test-btn" style="background-color: #fd7e14;">
+    🔥 Тест Firebase
+  </button>
+  <button onclick="testConnection()" class="test-btn">
+    🔧 Тест соединения
+  </button>
+</div>
+
+<!-- Модальное окно для рейтинга -->
+<div id="ratingModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeRating()">&times;</span>
+    <h2 style="margin-top: 0; margin-bottom: 20px; text-align: center;">🏆 Рейтинг всех сортов пива</h2>
+    <div id="ratingList">
+      <div style="text-align: center; padding: 20px;">
+        <span class="loading-spinner"></span>
+        <span class="loading-text">Загрузка рейтинга...</span>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-let tg = window.Telegram.WebApp;
-let userId = null;
+// Firebase конфигурация
+const firebaseConfig = {
+  apiKey: "AIzaSyCve1eZ8oaFwbvQg_gjXwuAS_ErLX8ccZ8",
+  authDomain: "beer-rating-f30c9.firebaseapp.com",
+  databaseURL: "https://beer-rating-f30c9-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "beer-rating-f30c9",
+  storageBucket: "beer-rating-f30c9.firebasestorage.app",
+  messagingSenderId: "848076671972",
+  appId: "1:848076671972:web:fc4c6b2b05311c1aab55f1",
+  measurementId: "G-94WXQ63NP9"
+};
 
-if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-  Telegram.WebApp.ready();
-}
+// Инициализация Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+let tg = window.Telegram?.WebApp;
+let userId = null;
+let isLoading = false;
+let allBeers = [];
+
+// Инициализация Telegram WebApp
+if (tg) {
+  tg.ready();
+  // Принудительно устанавливаем светлую тему
+  tg.setHeaderColor('#ffffff');
+  tg.setBackgroundColor('#ffffff');
+  
   if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
     userId = tg.initDataUnsafe.user.id;
   } else {
     userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
   }
+} else {
+  userId = 'anonymous_' + Math.floor(Math.random() * 1000000); // fallback для браузера
+}
 
-  async function loadRandomBeer() {
-    try {
-      const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec?action=random');
-      const data = await res.json();
-      window.currentBeer = data;
-      document.getElementById('beer-name').textContent = data.name;
-      document.getElementById('beer-info').textContent = data.country || 'Страна не указана'; // Добавлено
-    } catch (err) {
-      console.error("Ошибка загрузки пива:", err);
-      document.getElementById('beer-name').textContent = "Ошибка :(";
+console.log('Firebase инициализирован');
+console.log('User ID:', userId);
+
+function enableButtons() {
+  const buttons = document.querySelectorAll('.rating-buttons button');
+  buttons.forEach(button => button.disabled = false);
+}
+
+function disableButtons() {
+  const buttons = document.querySelectorAll('.rating-buttons button');
+  buttons.forEach(button => button.disabled = true);
+}
+
+async function loadAllBeers() {
+  try {
+    console.log('Загружаем все сорта пива из Firebase...');
+    const snapshot = await database.ref('beers').once('value');
+    const beersData = snapshot.val();
+    
+    if (!beersData) {
+      throw new Error('Данные о пиве не найдены в Firebase');
     }
+    
+    allBeers = Object.keys(beersData).map(key => ({
+      id: key,
+      ...beersData[key]
+    }));
+    
+    console.log(`Загружено ${allBeers.length} сортов пива:`, allBeers);
+    return allBeers;
+  } catch (error) {
+    console.error('Ошибка загрузки пива из Firebase:', error);
+    throw error;
   }
+}
 
-  async function sendVote(score) {
-    try {
-      const payload = {
-        action: 'vote',
-        userId: userId,
-        beerId: window.currentBeer.id,
-        score: score
+async function loadRandomBeer() {
+  if (isLoading) return;
+  isLoading = true;
+  
+  try {
+    console.log('Загружаем случайное пиво...');
+    
+    // Показываем индикатор загрузки
+    document.getElementById('beer-name').innerHTML = '<span class="loading-spinner"></span><span class="loading-text">Загрузка...</span>';
+    document.getElementById('beer-info').textContent = '';
+    document.getElementById('beer-image').style.display = 'none';
+    disableButtons();
+    
+    // Загружаем все пиво если еще не загружено
+    if (allBeers.length === 0) {
+      await loadAllBeers();
+    }
+    
+    // Выбираем случайное пиво
+    const randomIndex = Math.floor(Math.random() * allBeers.length);
+    const randomBeer = allBeers[randomIndex];
+    
+    console.log('Выбрано случайное пиво:', randomBeer);
+    
+    window.currentBeer = randomBeer;
+    document.getElementById('beer-name').textContent = randomBeer.name;
+    document.getElementById('beer-info').textContent = randomBeer.country || 'Страна не указана';
+    
+    // Загружаем изображение если есть URL
+    if (randomBeer.imageUrl && randomBeer.imageUrl.trim()) {
+      const img = document.getElementById('beer-image');
+      img.src = randomBeer.imageUrl;
+      img.style.display = 'block';
+      img.onload = function() {
+        console.log('Изображение загружено успешно');
       };
-
-    const res = await fetch('https://script.google.com/macros/s/AKfycbwxmJQZjMpBOzj_PJ0FaIN7JYwdIHxSGA0bgjKe3M3uBRgRvuPGm7KbjLMJh4VtsDjXsQ/exec', {
-      method: 'POST',
-      body: JSON.stringify(payload)
-    });
-
-      const result = await res.json();
-      alert(result.message || "Голос учтён!");
-    } catch (err) {
-      console.error("Ошибка отправки голоса:", err);
-      alert("Ошибка. Попробуйте ещё раз.");
+      img.onerror = function() {
+        console.log('Ошибка загрузки изображения:', randomBeer.imageUrl);
+        this.style.display = 'none';
+      };
     }
+    
+    enableButtons();
+    
+  } catch (err) {
+    console.error("Ошибка загрузки пива:", err);
+    
+    document.getElementById('beer-name').textContent = "Ошибка загрузки :(";
+    document.getElementById('beer-info').textContent = "Попробуйте обновить страницу";
+  } finally {
+    isLoading = false;
+  }
+}
+
+async function sendVote(score) {
+  // Проверяем, что пиво загружено
+  if (!window.currentBeer || !window.currentBeer.id) {
+    alert("Ошибка: данные о пиве не загружены. Попробуйте обновить страницу.");
+    return;
   }
 
-  loadRandomBeer();
-});
+  if (isLoading) {
+    alert("Подождите, идет загрузка...");
+    return;
+  }
+
+  try {
+    console.log('=== ОТПРАВКА ГОЛОСА В FIREBASE ===');
+    console.log('Отправляем голос:', score, 'для пива:', window.currentBeer.id);
+    console.log('userId:', userId);
+    
+    // Блокируем кнопки на время отправки
+    disableButtons();
+    
+    const voteData = {
+      userId: userId,
+      beerId: window.currentBeer.id,
+      beerName: window.currentBeer.name,
+      score: score,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    console.log('Данные голоса:', voteData);
+    
+    // Записываем голос в Firebase
+    const voteRef = database.ref('votes').push();
+    await voteRef.set(voteData);
+    
+    console.log('Голос успешно записан в Firebase!');
+    
+    alert("Голос учтён и записан в Firebase! 🍺");
+    
+    // Загружаем следующее пиво после успешного голосования
+    loadRandomBeer();
+    
+  } catch (err) {
+    console.error("Ошибка отправки голоса в Firebase:", err);
+    enableButtons();
+    alert(`Ошибка записи в Firebase: ${err.message}`);
+  }
+}
+
+// Загружаем первое пиво при загрузке страницы
+loadRandomBeer();
+
+// Закрытие модального окна при клике вне его области
+window.onclick = function(event) {
+  const modal = document.getElementById('ratingModal');
+  if (event.target === modal) {
+    closeRating();
+  }
+}
+
+async function testFirebaseConnection() {
+  try {
+    console.log('=== ТЕСТ FIREBASE ===');
+    
+    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
+    testBtn.disabled = true;
+    testBtn.innerHTML = '<span class="loading-spinner"></span> Тестирование...';
+    
+    // Тест 1: Проверяем подключение к Firebase
+    console.log('1. Проверяем подключение к Firebase...');
+    const testRef = database.ref('.info/connected');
+    const snapshot = await testRef.once('value');
+    const connected = snapshot.val();
+    
+    if (!connected) {
+      throw new Error('Нет подключения к Firebase');
+    }
+    console.log('✅ Подключение к Firebase OK');
+    
+    // Тест 2: Проверяем загрузку пива
+    console.log('2. Проверяем загрузку данных о пиве...');
+    const beersSnapshot = await database.ref('beers').limitToFirst(1).once('value');
+    const beersData = beersSnapshot.val();
+    
+    if (!beersData) {
+      throw new Error('Данные о пиве не найдены');
+    }
+    console.log('✅ Данные о пиве загружаются OK');
+    
+    // Тест 3: Проверяем запись тестового голоса
+    console.log('3. Проверяем запись тестового голоса...');
+    const testVote = {
+      userId: 'test_user',
+      beerId: 'test_beer',
+      beerName: 'Test Beer',
+      score: 5,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    const testVoteRef = database.ref('votes').push();
+    await testVoteRef.set(testVote);
+    console.log('✅ Запись голоса OK');
+    
+    // Удаляем тестовый голос
+    await testVoteRef.remove();
+    console.log('✅ Тестовый голос удален');
+    
+    alert('🔥 Firebase работает отлично!\n\n✅ Подключение: OK\n✅ Загрузка данных: OK\n✅ Запись голосов: OK');
+    
+  } catch (err) {
+    console.error("Ошибка теста Firebase:", err);
+    alert(`❌ Ошибка Firebase: ${err.message}\n\nСмотрите консоль для деталей.`);
+  } finally {
+    const testBtn = document.querySelector('.test-btn[style*="fd7e14"]');
+    testBtn.disabled = false;
+    testBtn.innerHTML = '🔥 Тест Firebase';
+  }
+}
+
+async function testConnection() {
+  // Оставляем старую функцию для совместимости, но теперь она тестирует Firebase
+  await testFirebaseConnection();
+}
+
+function showRating() {
+  document.getElementById('ratingModal').style.display = 'block';
+  loadAllRatings();
+}
+
+function closeRating() {
+  document.getElementById('ratingModal').style.display = 'none';
+}
+
+async function loadAllRatings() {
+  try {
+    console.log('Загружаем рейтинг из Firebase...');
+    
+    const ratingBtn = document.querySelector('.rating-btn');
+    ratingBtn.disabled = true;
+    
+    // Показываем индикатор загрузки
+    const ratingList = document.getElementById('ratingList');
+    ratingList.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="loading-spinner"></span><span class="loading-text">Загрузка рейтинга...</span></div>';
+    
+    // Загружаем все голоса из Firebase
+    const votesSnapshot = await database.ref('votes').once('value');
+    const votesData = votesSnapshot.val();
+    
+    if (!votesData) {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Пока нет голосов</div>';
+      return;
+    }
+    
+    // Группируем голоса по пиву и вычисляем средний рейтинг
+    const beerRatings = {};
+    
+    Object.values(votesData).forEach(vote => {
+      if (vote.score !== null && vote.score !== 'null') {
+        const beerId = vote.beerId;
+        const beerName = vote.beerName || `Пиво ${beerId}`;
+        const score = parseFloat(vote.score);
+        
+        if (!beerRatings[beerId]) {
+          beerRatings[beerId] = {
+            name: beerName,
+            scores: [],
+            totalScore: 0,
+            count: 0
+          };
+        }
+        
+        beerRatings[beerId].scores.push(score);
+        beerRatings[beerId].totalScore += score;
+        beerRatings[beerId].count += 1;
+      }
+    });
+    
+    // Вычисляем средние рейтинги и сортируем
+    const ratingsArray = Object.keys(beerRatings).map(beerId => {
+      const rating = beerRatings[beerId];
+      return {
+        name: rating.name,
+        averageRating: rating.totalScore / rating.count,
+        voteCount: rating.count
+      };
+    }).sort((a, b) => b.averageRating - a.averageRating);
+    
+    console.log('Рейтинги вычислены:', ratingsArray);
+    
+    ratingList.innerHTML = ''; // Очищаем предыдущий список
+    
+    if (ratingsArray.length === 0) {
+      ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Пока нет оценок</div>';
+      return;
+    }
+
+    ratingsArray.forEach(item => {
+      const ratingItem = document.createElement('div');
+      ratingItem.className = 'rating-item';
+      ratingItem.innerHTML = `
+        <div class="beer-name">${item.name} <small>(${item.voteCount} голосов)</small></div>
+        <div class="beer-rating ${item.averageRating >= 7 ? 'rating-high' : item.averageRating >= 4 ? 'rating-medium' : 'rating-low'}">
+          ${item.averageRating.toFixed(1)}
+        </div>
+      `;
+      ratingList.appendChild(ratingItem);
+    });
+    
+  } catch (err) {
+    console.error("Ошибка загрузки рейтинга из Firebase:", err);
+    
+    const ratingList = document.getElementById('ratingList');
+    ratingList.innerHTML = '<div style="text-align: center; padding: 20px;">Не удалось загрузить рейтинг из Firebase. Попробуйте позже.</div>';
+  } finally {
+    const ratingBtn = document.querySelector('.rating-btn');
+    ratingBtn.disabled = false;
+  }
+}
 </script> 
 
 </body>
