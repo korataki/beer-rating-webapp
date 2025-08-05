@@ -2,6 +2,7 @@
 <html>
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Оценка Пива</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   
@@ -313,24 +314,42 @@
     /* Адаптивность для маленьких экранов */
     @media (max-width: 480px) {
       body {
-        padding: 15px;
+        padding: 20px 15px;
+        font-size: 18px;
       }
       
       .beer-image {
-        width: 150px;
-        height: 150px;
+        width: 180px;
+        height: 180px;
+        margin-bottom: 20px;
+      }
+      
+      #beer-name {
+        font-size: 28px;
+        margin: 25px 0 15px 0;
+        line-height: 1.2;
+      }
+      
+      #beer-info {
+        font-size: 18px;
+        margin-bottom: 35px;
+        line-height: 1.4;
       }
       
       .rating-buttons {
         grid-template-columns: repeat(3, 1fr);
-        gap: 8px;
-        max-width: 300px;
+        gap: 12px;
+        max-width: 350px;
+        margin: 0 auto 40px auto;
       }
       
       .rating-buttons button {
-        padding: 12px 8px;
-        font-size: 16px;
-        min-height: 45px;
+        padding: 18px 12px;
+        font-size: 20px;
+        min-height: 60px;
+        border-width: 3px;
+        border-radius: 15px;
+        font-weight: bold;
       }
       
       /* Адаптивное расположение для мобильных */
@@ -372,18 +391,63 @@
       /* Кнопка "Не пробовал" на всю ширину */
       .rating-buttons button:last-child {
         grid-column: 1 / 4;
-        font-size: 14px;
+        font-size: 18px;
+        padding: 16px 12px;
+        margin-top: 15px;
       }
       
-      #beer-name {
-        font-size: 20px;
+      .control-buttons {
+        margin-top: 40px;
       }
       
       .control-buttons button {
         width: 100%;
-        max-width: 280px;
-        font-size: 14px;
-        padding: 10px 20px;
+        max-width: 320px;
+        font-size: 18px;
+        padding: 16px 25px;
+        min-height: 55px;
+      }
+      
+      /* Увеличиваем размеры модального окна */
+      .modal-content {
+        margin: 10% auto;
+        padding: 25px;
+        width: 95%;
+        max-height: 75vh;
+      }
+      
+      .modal-content h2 {
+        font-size: 24px;
+        margin-bottom: 25px;
+      }
+      
+      .rating-item {
+        padding: 15px 10px;
+        font-size: 16px;
+      }
+      
+      .beer-rating {
+        font-size: 20px;
+        padding: 8px 12px;
+        min-width: 55px;
+      }
+      
+      .close {
+        font-size: 32px;
+        right: 20px;
+        top: 15px;
+      }
+      
+      /* Увеличиваем спиннер загрузки */
+      .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border-width: 4px;
+        margin-right: 12px;
+      }
+      
+      .loading-text {
+        font-size: 18px;
       }
     }
     
